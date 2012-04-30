@@ -1,0 +1,32 @@
+<div class="media" id="<%= _id %>">
+	<div class="activity-item-controls">
+		<span class="activity-item-time-ago">[10m]</span>
+		<a class="activity-item-control" href="/item/view/<%= _id %>">#</a>
+		<a class="activity-item-control like-item" href="/item/like/<%= _id %>"><i class="icon-thumbs-up"></i></a>
+		<a class="activity-item-control dislike-item" href="/item/dislike/<%= _id %>"><i class="icon-thumbs-down"></i></a>
+		<a class="activity-item-control expand-item" href="/item/view/<%= _id %>"><i class="icon-chevron-down"></i></a>
+		<a class="activity-item-control collapse-item" href="/item/view/<%= _id %>"><i class="icon-chevron-up"></i></a>
+	</div>
+	<div class="bd">
+		<div class="img">
+			<a href="/identity/view/<%= user._id %>">
+				<img class="activity-item-avatar" src="<%= avatar_url || "/images/saturn/logo_t.png" %>">
+			</a>
+		</div>
+		<span class="activity-item-author">
+			<a href="/identity/view/<%= user._id %>"><%= user.display_name %></a>
+		</span>
+		<p class="activity-item-text"><%= parsed_message %></p>
+		<span class="activity-item-topics">
+			<% topics.forEach(function (topic) { if (topic.instances > 1) { %>
+				<a href="/topic/view/<%= topic._id %>"><%= topic.text %></a>
+			<% }}); %>
+			<a href="#" class="add-topic">
+				<span class="add-topic-label"><strong>+</strong></span>
+				<form>
+					<input type="text" />
+				</form>
+			</a>
+		</span>
+	</div><div class="clear"></div>
+</div>

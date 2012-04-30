@@ -1,0 +1,13 @@
+
+<h1>Editing User <%= user.name %></h1>
+<%- partial('../messages') %>
+<form method="post" action="/user/<%= user.id %>">
+  <input type="hidden" name="_method" value="put" />
+  <p>Name: <input type="text" name="user[user_name]", value="<%= user.user_name %>" /></p>
+  <p>Email: <input type="text" name="user[email]", value="<%= user.email %>" /></p>
+  <p>ZIP: <input type="text" name="user[zip]", value="<%= user.zip %>" /></p>
+  <p>
+  	<button class="button-submit" type="submit" value="Update">Save</button>
+  	<a class="button-cancel" href="/user/<%= user.id %>">Cancel</a>
+  </p>
+</form>

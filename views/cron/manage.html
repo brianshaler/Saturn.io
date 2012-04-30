@@ -1,0 +1,24 @@
+<table width="100%">
+	
+<tr>
+	<td>Controller</td>
+	<td>Method</td>
+	<td>Interval</td>
+</tr>
+<% tasks.forEach(function (task) { %>
+	<tr class="">
+		<td><%= task.controller %></td>
+		<td><%= task.method %></td>
+		<td><%= task.interval %></td>
+		<td><a href="/cron/edit/<%= task.id %>">edit</a></td>
+	</tr>
+<% }) %>
+<form method="post" action="/cron/create">
+	<tr>
+		<td><input type="text" name="task[controller]" value="" /></td>
+		<td><input type="text" name="task[method]" value="" /></td>
+		<td><input type="text" name="task[interval]" value="" /></td>
+		<td><input type="submit" value="Add" /></td>
+	</tr>
+
+</table>

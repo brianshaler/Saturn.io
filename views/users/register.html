@@ -1,0 +1,15 @@
+<h1>Register</h1>
+<% if (errors) { 
+	errors.forEach(function (error) { %>
+		<div><%- error %></div>
+<% }); } %>
+<form method="post" action="/user/register">
+	User name: <input type="text" name="user[user_name]" value="<%= user.user_name %>" /><br />
+	Email address: <input type="text" name="user[email]" value="<%= user.email %>" /><br />
+	Password: <input type="password" name="user[password]" /><br />
+	Confirm Password: <input type="password" name="password2" /><br />
+	5-digit ZIP: <input type="text" name="user[zip]" value="<%= user.zip %>" /><br />
+	
+	<input type="submit" value="Register" />
+	<p>Orrrr... Register via <a href="/twitter/oauth">Twitter</a>.</p>
+</form>

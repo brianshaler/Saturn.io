@@ -1,0 +1,13 @@
+<section class="activity-item-list stream-<%= stream.name %>">
+	
+</section>
+
+<script>
+current_view = new ActivityView("<%= stream.name %>", "<%= stream.url %>");
+current_view.set_sort("<%= stream.sort_by %>");
+current_view.minimum_rating = -100;
+current_view.collapse_below = 2;
+<% activity_items.forEach(function (item) { %>
+current_view.add_item(<%- JSON.stringify(item) %>);
+<% }) %>
+</script>

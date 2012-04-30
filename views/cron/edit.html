@@ -1,0 +1,19 @@
+<h2><a href="/cron/manage">Manage</a></h2>
+<form method="post" action="/cron/modify<% if (!is_new) { %>/<%=task.id%><% } %>">
+	<input type="hidden" name="_method" value="put" />
+	<input type="hidden" name="task[_id]" value="<%= task.id %>" />
+<table width="100%">
+	
+<tr>
+	<td>Controller</td>
+	<td>Method</td>
+	<td>Interval</td>
+</tr>
+	<tr class="">
+		<td><input type="text" name="task[controller]" value="<%= task.controller %>" /></td>
+		<td><input type="text" name="task[method]" value="<%= task.method %>" /></td>
+		<td><input type="text" name="task[interval]" value="<%= task.interval %>" /></td>
+		<td><input type="submit" value="Save" /></td>
+	</tr>
+</table>
+</form>

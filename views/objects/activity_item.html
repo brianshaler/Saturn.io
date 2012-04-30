@@ -1,0 +1,16 @@
+<section class="activity-item-list stream-item-<%= item.id %>">
+	
+</section>
+
+<script>
+current_view = new ActivityView("item-<%= item.id %>", "");
+current_view.add_item(<%- JSON.stringify(item) %>);
+</script>
+
+
+<pre>
+	<%- item.analyzed_at %>
+	<%- JSON.stringify(item.ratings) %>
+	<%- JSON.stringify(item.topics) %>
+	<%- JSON.stringify(item.characteristics) %>
+</pre>
