@@ -6,17 +6,17 @@ FYI, it's pretty hacky for now, but it theoretically works... or at least some f
 Installation
 ------------
 
-1. Install some extra node modules:
+Install some extra node modules:
 
-  $ npm install -g express-mvc-framework
-  $ npm install mongodb hook log mkdirp
+    $ npm install -g express-mvc-framework
+    $ npm install mongodb hook log mkdirp
 
-2. Make a copy of the sample config
+Make a copy of the sample config:
 
     $ cp conf/conf.js.sample conf/conf.js
 
-3. Run MongoDB
-4. Run the app
+Run MongoDB
+Run the app:
 
     $ eb
 
