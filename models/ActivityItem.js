@@ -8,8 +8,6 @@ var mongoose = require('mongoose'),
 	natural = require('natural'),
 	ObjectId = Schema.ObjectId;
 
-
-
 var tokenizer = new natural.TreebankWordTokenizer();
 natural.LancasterStemmer.attach();
 var wordnet = new natural.WordNet('./cache');

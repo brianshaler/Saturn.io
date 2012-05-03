@@ -4,8 +4,5 @@ logs/*.log
 pids/*.pid
 tmp
 conf/conf.js
-cache/data.noun
-cache/index.adj
-cache/index.adv
-cache/index.noun
-cache/index.verb
+cache/index.*
+cache/data.*

@@ -36,7 +36,8 @@ module.exports = {
 			
 			var attr = task.attributes || {};
 			
-			if (attr.connected || attr.last_ping.getTime() > Date.now() - stream_timeout) {
+			if (attr.connected && attr.last_ping.getTime() > Date.now() - stream_timeout) {
+				console.log('already connected')
 				return res.send("Already streaming...");
 			}
 			

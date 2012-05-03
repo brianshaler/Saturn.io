@@ -1,6 +1,6 @@
-/**
- *  Twitter Controller
- **/
+// Analysis Controller
+//
+// Core natural language processing controller
 
 var sys = require('sys'),
 	http = require('http'),
