@@ -104,10 +104,6 @@ ActivityItemSchema.methods.analyze = function(cb) {
 		
 		var ngram_length = words.length;
 		var phrases = [];
-		if (words.length > 1) {
-			phrases.push({text: words.join(" ")});
-			phrases.push({text: words.join("")});
-		}
 		while (ngram_length > 1) {
 			var tmp_ngrams = NGrams.ngrams(words, ngram_length);
 			tmp_ngrams.forEach(function(phrase) {
@@ -125,17 +121,14 @@ ActivityItemSchema.methods.analyze = function(cb) {
 		});
 		words = tmp_words;
 		
-		//console.log(words.join(","));
-		
 		check_phrases();
 		
+		// Check topics for phrase matches
 		function check_phrases() {
+			console.log(phrases);
 			Topic.find()
-			.or(phrases)
-			.run(function(err, topics) {
-				//console.log("Topics by phrase: ");
-				//console.log(topics);
-				
+				.or(phrases)
+				.run(function(err, topics) {
 				if (!err && topics) {
 					topics.forEach(function(topic) {
 						merge(words, topic.text);
