@@ -19,7 +19,7 @@ function merge(array, newItem) {
 	array.forEach(function(i) {
 		if (i === newItem) return;
 	});
-	array.push(item);
+	array.push(newItem);
 } 
 
 var ActivityItemSchema = new Schema({
