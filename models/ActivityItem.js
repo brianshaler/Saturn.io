@@ -110,7 +110,7 @@ ActivityItemSchema.methods.analyze = function(cb) {
 		}
 		while (ngram_length > 1) {
 			var tmp_ngrams = NGrams.ngrams(words, ngram_length);
-			tmp_ngrams.forEach(function (phrase) {
+			tmp_ngrams.forEach(function(phrase) {
 				phrases.push({text: phrase.join(" ")});
 				phrases.push({text: phrase.join("")});
 			});
@@ -118,7 +118,7 @@ ActivityItemSchema.methods.analyze = function(cb) {
 		}
 		
 		var tmp_words = [];
-		words.forEach(function (word) {
+		words.forEach(function(word) {
 			if (word.length > 2) {
 				tmp_words.push(word);
 			}
@@ -129,15 +129,15 @@ ActivityItemSchema.methods.analyze = function(cb) {
 		
 		check_phrases();
 		
-		function check_phrases () {
+		function check_phrases() {
 			Topic.find()
 			.or(phrases)
-			.run(function (err, topics) {
+			.run(function(err, topics) {
 				//console.log("Topics by phrase: ");
 				//console.log(topics);
 				
 				if (!err && topics) {
-					topics.forEach(function (topic) {
+					topics.forEach(function(topic) {
 						merge(words, topic.text);
 					});
 				}
@@ -148,13 +148,13 @@ ActivityItemSchema.methods.analyze = function(cb) {
 		function remove_topics_from_words () {
 			var tmp_words = [];
 			
-			JunkTopic.find({text: {"$in": words}}, function (err, topics) {
+			JunkTopic.find({text: {"$in": words}}, function(err, topics) {
 				if (err || !topics) {
 					topics = [];
 				}
-				words.forEach(function (word) {
+				words.forEach(function(word) {
 					var found = false;
-					topics.forEach(function (topic) {
+					topics.forEach(function(topic) {
 						if (topic.text == word) {
 							found = true;
 						}
@@ -167,13 +167,13 @@ ActivityItemSchema.methods.analyze = function(cb) {
 				tmp_words = [];
 				//console.log("okay, let's go! lookup_next_word()!");
 				
-				Topic.find({text: {"$in": words}}, function (err, topics) {
+				Topic.find({text: {"$in": words}}, function(err, topics) {
 					if (err || !topics) {
 						topics = [];
 					}
-					words.forEach(function (word) {
+					words.forEach(function(word) {
 						var found = false;
-						topics.forEach(function (topic) {
+						topics.forEach(function(topic) {
 							if (topic.text == word) {
 								found = true;
 							}
@@ -193,7 +193,7 @@ ActivityItemSchema.methods.analyze = function(cb) {
 			});
 		}
 		
-		function lookup_next_word () {
+		function lookup_next_word() {
 			if (words.length == 0) {
 				return add_topics();
 			}
