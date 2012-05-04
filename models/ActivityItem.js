@@ -45,11 +45,11 @@ var ActivityItemSchema = new Schema({
 	
 });
 
-ActivityItemSchema.methods.analyze = function (cb) {
+ActivityItemSchema.methods.analyze = function(cb) {
 	var self = this;
 	var item = self;
 	var AI = this;
-	(function analyze_me (item, cb) {
+	(function analyze_me(item, cb) {
 		console.log('Schema analyze_me');
 
 		var Topic = mongoose.model('Topic');
@@ -281,7 +281,7 @@ ActivityItemSchema.methods.analyze = function (cb) {
 					}
 					topic_text = new_topics.shift();
 					var topic = new Topic({text: topic_text, ratings: {overall: 0}});
-					topic.save(function (err) {
+					topic.save(function(err) {
 						add_each_topic();
 					});
 				}
@@ -291,15 +291,15 @@ ActivityItemSchema.methods.analyze = function (cb) {
 			function done_adding() {
 				var topic_ids = [];
 				var topic_texts = [];
-				Topic.find({text: {"$in": keywords}}, function (err, t) {
-					t.forEach(function (topic) {
+				Topic.find({text: {"$in": keywords}}, function(err, t) {
+					t.forEach(function(topic) {
 						topic_ids.push(topic.id);
 						topic_texts.push(topic.text);
 					});
 					if (!item.topics || !(item.topics.length > 0)) {
 						item.topics = topic_ids;
 					} else {
-						topic_ids.forEach(function (new_topic) {
+						topic_ids.forEach(function(new_topic) {
 							merge(item.topics, new_topic);
 						});
 					}
@@ -307,9 +307,9 @@ ActivityItemSchema.methods.analyze = function (cb) {
 					//console.log(self.message);
 					//console.log("Topics: "+topic_texts.join(", "));
 					item.commit("topics");
-					item.save(function (err) {
-						t.forEach(function (topic) {
-							topic.save(function (err) {
+					item.save(function(err) {
+						t.forEach(function(topic) {
+							topic.save(function(err) {
 								// err
 							});
 						});
@@ -320,13 +320,13 @@ ActivityItemSchema.methods.analyze = function (cb) {
 
 			}
 			
-			function done_with_topics () {
+			function done_with_topics() {
 				//console.log("calling back... "+item.topics.length);
 				
 				rate_that_shit();
 			}
 			
-			function rate_that_shit () {
+			function rate_that_shit() {
 				var topic_ratings = 0;
 				var topic_count = 0;
 				var char_ratings = 0;
@@ -338,9 +338,9 @@ ActivityItemSchema.methods.analyze = function (cb) {
 				.populate("characteristics")
 				.populate("topics")
 				.populate("user")
-				.run(function (err, _item) {
+				.run(function(err, _item) {
 					if (!err && _item) {
-						_item.topics.forEach(function (topic) {
+						_item.topics.forEach(function(topic) {
 							if (topic.ratings.overall > 0 || topic.ratings.overall < 0) {
 								if (parseInt(topic.ratings.overall) != 0) {
 									topic_ratings += parseFloat(topic.ratings.overall);
@@ -352,7 +352,7 @@ ActivityItemSchema.methods.analyze = function (cb) {
 							factors.push(topic_ratings/topic_count);
 						}
 						
-						_item.characteristics.forEach(function (ch) {
+						_item.characteristics.forEach(function(ch) {
 							if (parseFloat(ch.ratings.overall) != 0) {
 								char_ratings += parseFloat(ch.ratings.overall)*.2;
 								char_count++;
@@ -399,7 +399,7 @@ ActivityItemSchema.methods.analyze = function (cb) {
 }
 
 
-ActivityItemSchema.pre('save', function (next) {
+ActivityItemSchema.pre('save', function(next) {
 	var self = this;
 	
 	if (!this.ratings) {
@@ -411,10 +411,10 @@ ActivityItemSchema.pre('save', function (next) {
 	
 	var orig = self.message
 	//console.log("Starting message: "+self.message);
-	unshorten_urls(self.message, function (m) {
+	unshorten_urls(self.message, function(m) {
 		//console.log("New message (1): "+m);
 		if (self.message != m) {
-			unshorten_urls(m, function (m) {
+			unshorten_urls(m, function(m) {
 				//console.log("New message (2): "+m);
 				self.message = m;
 				next();
@@ -452,7 +452,7 @@ ActivityItemSchema.pre('save', function (next) {
 	/**/
 });
 
-function unshorten_urls (_message, cb) {
+function unshorten_urls(_message, cb) {
 	var regex = /\(?\bhttps?:\/\/[-A-Za-z0-9+&@#\/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#\/%=~_()|]/gi;
 	var matches = _message.match(regex);
 	if (matches) {
@@ -464,7 +464,7 @@ function unshorten_urls (_message, cb) {
 			if (match.length > 28) {
 				unshorten_next();
 			} else {
-				unshorten(match, function (url) {
+				unshorten(match, function(url) {
 					if (match != url) {
 						match = match.replace(/ /g, "%20");
 						_message = _message.replace(match, url);
@@ -474,7 +474,7 @@ function unshorten_urls (_message, cb) {
 			}
 		}
 		unshorten_next();
-		function finished () {
+		function finished() {
 			cb(_message);
 		}
 	} else {
