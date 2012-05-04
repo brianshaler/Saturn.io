@@ -13,6 +13,15 @@ natural.LancasterStemmer.attach();
 var wordnet = new natural.WordNet('./cache');
 var NGrams = natural.NGrams;
 
+// Add an item to the array, if it doesn't already exist,
+// in order to mimic a set
+function merge(array, newItem) {
+	array.forEach(function(i) {
+		if (i === newItem) return;
+	});
+	array.push(item);
+} 
+
 var ActivityItemSchema = new Schema({
 	
 	guid: {type: String, unique: true, index: true, required: true},
@@ -69,27 +78,11 @@ ActivityItemSchema.methods.analyze = function (cb) {
 		urls.forEach(function (url) {
 			domain = url.substr(url.indexOf("//")+2);
 			domain = domain.substr(0, domain.indexOf("/"));
-			var found = false;
-			keywords.forEach(function (existing) {
-				if (existing == domain) {
-					found = true;
-				}
-			});
-			if (!found) {
-				keywords.push(domain);
-			}
+			merge(keywords, domain);
 		});
 		hashtags.forEach(function (tag) {
 			tag = tag.substring(1);
-			var found = false;
-			keywords.forEach(function (existing) {
-				if (existing == tag) {
-					found = true;
-				}
-			});
-			if (!found) {
-				keywords.push(tag);
-			}
+			merge(keywords, tag);
 		});
 		
 		// Natural language analysis of message
@@ -140,16 +133,7 @@ ActivityItemSchema.methods.analyze = function (cb) {
 				
 				if (!err && topics) {
 					topics.forEach(function (topic) {
-						var found = false;
-						words.forEach(function (word) {
-							if (word == topic.text) {
-								found = true;
-							}
-						});
-						if (!found) {
-							console.log("ADDING FROM PHRASE: "+topic.text);
-							words.push(topic.text);
-						}
+						merge(words, topic.text);
 					});
 				}
 				remove_topics_from_words();
@@ -215,19 +199,20 @@ ActivityItemSchema.methods.analyze = function (cb) {
 			var verb = 0;
 
 			if (word.length > 3) {
+				// Numbers
 				if (word.match(/^[0-9]*$/)) {
 					classify_word(word, noun, verb, neither);
+				// Everything else
 				} else {
 					wordnet.lookup(word, function(results) {
-
 						results.forEach(function(result) {
 							if (result.pos == "n") {
 								noun++;
-							} else 
-							if (result.pos == "v") {
+							} else if (result.pos == "v") {
 								verb++;
-							} else
-							if (result.pos == "a" || result.pos == "r" || result.pos == "s") {
+							} else if (result.pos == "a" || 
+									   result.pos == "r" || 
+									   result.pos == "s") {
 								neither++;
 							}
 						});
@@ -235,43 +220,35 @@ ActivityItemSchema.methods.analyze = function (cb) {
 					});
 					return;
 				}
+			// Automatically junk any word under 4 characters
 			} else {
 				save_junk_topic(word);
 				lookup_next_word();
 			}
 		}
-		function classify_word (w, n, v, neither) {
-			if (n == 0 && neither > v) {
+
+		function classify_word(w, n, v, neither) {
+			if (n === 0 && neither > v) {
 				save_junk_topic(w);
-				//console.log(w+": is ("+n+":"+v+"/"+neither+") I don't know.. Junk?");
 			} else {
-				//console.log(w+": noun:"+n+" / verb:"+v+" / neither:"+neither);
-				var found = false;
-				keywords.forEach(function (existing) {
-					if (existing == w) {
-						found = true;
-					}
-				});
-				if (!found) {
-					keywords.push(w);
-				}
+				merge(keywords, w);
 			}
 			lookup_next_word();
 		}
 		
-		function save_junk_topic (word) {
-			JunkTopic.findOne({text: word}, function (err, topic) {
+		function save_junk_topic(word) {
+			JunkTopic.findOne({text: word}, function(err, topic) {
 				if (err || (topic && topic.text == word)) {
 					return;
 				}
 				var junker = new JunkTopic({text: word});
-				junker.save(function (err) {
+				junker.save(function(err) {
 					// err?
 				});
 			});
 		}
 		
-		function add_topics () {
+		function add_topics() {
 			var existing_topics = [];
 			//console.log("Getting topics");
 			
@@ -284,7 +261,7 @@ ActivityItemSchema.methods.analyze = function (cb) {
 				done_with_topics();
 			}
 			
-			function add_new_topics () {
+			function add_new_topics() {
 				var new_topics = [];
 				keywords.forEach(function (keyword) {
 					var found = false;
@@ -298,7 +275,7 @@ ActivityItemSchema.methods.analyze = function (cb) {
 					}
 				});
 				
-				function add_each_topic () {
+				function add_each_topic() {
 					if (new_topics.length == 0) {
 						return done_adding();
 					}
@@ -311,7 +288,7 @@ ActivityItemSchema.methods.analyze = function (cb) {
 				add_each_topic();
 			}
 			
-			function done_adding () {
+			function done_adding() {
 				var topic_ids = [];
 				var topic_texts = [];
 				Topic.find({text: {"$in": keywords}}, function (err, t) {
@@ -323,15 +300,7 @@ ActivityItemSchema.methods.analyze = function (cb) {
 						item.topics = topic_ids;
 					} else {
 						topic_ids.forEach(function (new_topic) {
-							var found = false;
-							item.topics.forEach(function (existing) {
-								if (new_topic == existing) {
-									found = true;
-								}
-							});
-							if (!found) {
-								item.topics.push(new_topic);
-							}
+							merge(item.topics, new_topic);
 						});
 					}
 					//console.log("ADDED TOPIC IDS! "+item.topics.length);
