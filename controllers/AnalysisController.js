@@ -74,6 +74,8 @@ module.exports = {
 }
 
 function analyze_item (_item, cb) {
+	console.log('AnalysisController analyze_item()');
+
 	var error = null;
 	var item = _item;
 	

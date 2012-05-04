@@ -41,7 +41,8 @@ ActivityItemSchema.methods.analyze = function (cb) {
 	var item = self;
 	var AI = this;
 	(function analyze_me (item, cb) {
-		var mongoose = require('mongoose');
+		console.log('Schema analyze_me');
+
 		var Topic = mongoose.model('Topic');
 		var JunkTopic = mongoose.model('JunkTopic');
 		var AI = mongoose.model('ActivityItem');
@@ -91,6 +92,7 @@ ActivityItemSchema.methods.analyze = function (cb) {
 			}
 		});
 		
+		// Natural language analysis of message
 		message = message.remove_urls().remove_hashtags().remove_screen_names().replace_punctuation();
 		var chunks = message.split(" ");
 		var new_chunks = [];
@@ -213,11 +215,6 @@ ActivityItemSchema.methods.analyze = function (cb) {
 			var verb = 0;
 
 			if (word.length > 3) {
-				//console.log("> Word: "+word);
-				if (word.substring(0, word.length-3) == "ing") {
-					verb = 100;
-					classify_word(word, noun, verb, neither);
-				} else 
 				if (word.match(/^[0-9]*$/)) {
 					classify_word(word, noun, verb, neither);
 				} else {
