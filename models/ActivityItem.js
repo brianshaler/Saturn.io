@@ -4,14 +4,14 @@
 
 var mongoose = require('mongoose'),
 	unshorten = require('unshorten'),
-	Schema = mongoose.Schema,
 	natural = require('natural'),
+	Schema = mongoose.Schema,
 	ObjectId = Schema.ObjectId;
 
-var tokenizer = new natural.TreebankWordTokenizer();
+var NGrams = natural.NGrams,
+	wordnet = new natural.WordNet('./cache'),
+	tokenizer = new natural.TreebankWordTokenizer();
 natural.LancasterStemmer.attach();
-var wordnet = new natural.WordNet('./cache');
-var NGrams = natural.NGrams;
 
 // Add an item to the array, if it doesn't already exist,
 // in order to mimic a set
@@ -23,7 +23,6 @@ function merge(array, newItem) {
 } 
 
 var ActivityItemSchema = new Schema({
-	
 	guid: {type: String, unique: true, index: true, required: true},
 	user: {type: ObjectId, index: true, ref: "Identity"}, 
 	message: {type: String},
@@ -42,7 +41,6 @@ var ActivityItemSchema = new Schema({
 	activity: [{}],
 	analyzed_at: {type: Date, default: (function () { return new Date(1); })},
 	created_at: {type: Date, default: Date.now}
-	
 });
 
 ActivityItemSchema.methods.analyze = function(cb) {
@@ -52,9 +50,9 @@ ActivityItemSchema.methods.analyze = function(cb) {
 	(function analyze_me(item, cb) {
 		console.log('Schema analyze_me');
 
-		var Topic = mongoose.model('Topic');
-		var JunkTopic = mongoose.model('JunkTopic');
-		var AI = mongoose.model('ActivityItem');
+		var Topic = mongoose.model('Topic'),
+			JunkTopic = mongoose.model('JunkTopic'),
+			AI = mongoose.model('ActivityItem');
 		
 		var error = null;
 		
@@ -67,35 +65,42 @@ ActivityItemSchema.methods.analyze = function(cb) {
 		var message = item.message.toLowerCase();
 		
 		var url_pattern = /\(?\bhttps?:\/\/[-A-Za-z0-9+&@#\/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#\/%=~_()|]/gi;
-		var urls = message.match(url_pattern);
 		var hash_pattern = /#[a-zA-Z_0-9]*/gi;
-		var hashtags = message.match(hash_pattern);
 		
-		urls = urls || [];
-		hashtags = hashtags || [];
+		var urls = message.match(url_pattern) || [];
+		var hashtags = message.match(hash_pattern) || [];
 		
 		var keywords = [];
-		urls.forEach(function (url) {
-			domain = url.substr(url.indexOf("//")+2);
-			domain = domain.substr(0, domain.indexOf("/"));
+
+		// Add URLs to list of keywords
+		urls.forEach(function(url) {
+			var domain = url.substr(url.indexOf("//") + 2);
+			// Cut off at first slash in URL, if one exists
+			domain = domain.substr(0, domain.indexOf("/")) || domain;
 			merge(keywords, domain);
 		});
-		hashtags.forEach(function (tag) {
+
+		// Add hashtags
+		hashtags.forEach(function(tag) {
 			tag = tag.substring(1);
 			merge(keywords, tag);
 		});
 		
-		// Natural language analysis of message
-		message = message.remove_urls().remove_hashtags().remove_screen_names().replace_punctuation();
+		// Natural language analysis of remainder of message
+		message = message
+					.remove_urls()
+					.remove_hashtags()
+					.remove_screen_names()
+					.replace_punctuation();
 		var chunks = message.split(" ");
 		var new_chunks = [];
-		chunks.forEach(function (chunk) {
+		chunks.forEach(function(chunk) {
+			// Not sure the purpose of this
 			if (chunk.indexOf("'") == -1) {
 				new_chunks.push(chunk);
 			}
 		});
-		message = chunks.join(" ");
-		var words = tokenizer.tokenize(message);//.tokenizeAndStem();
+		var words = tokenizer.tokenize(message);
 		
 		var ngram_length = words.length;
 		var phrases = [];
