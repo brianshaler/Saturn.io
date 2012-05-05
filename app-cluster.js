@@ -50,7 +50,7 @@ exports.boot = function(port,path){
 				}
 			});
 			
-			// In 2 seconds, try to launch the twitter stream
+			// In 3 seconds, try to launch the twitter stream
 			setTimeout(function () {
 				var host = "local.saturn.io";
 				var port = 3000;
@@ -59,7 +59,7 @@ exports.boot = function(port,path){
 				var rand = Math.round(Math.random()*1000);
 	            var request = client.request("GET", url, {host: host, port: port});
 				client.addListener('error', function(error) {
-					console.log('ERROR' + error.message);
+					console.log('ERROR: ' + error.message);
 				});
 	            request.addListener("response", function(response) {
 	                var body = "";

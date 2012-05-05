@@ -4,19 +4,25 @@
 
 var mongoose = require('mongoose'),
 	unshorten = require('unshorten'),
-	Schema = mongoose.Schema,
 	natural = require('natural'),
+	Schema = mongoose.Schema,
 	ObjectId = Schema.ObjectId;
 
-
-
-var tokenizer = new natural.TreebankWordTokenizer();
+var NGrams = natural.NGrams,
+	wordnet = new natural.WordNet('./cache'),
+	tokenizer = new natural.TreebankWordTokenizer();
 natural.LancasterStemmer.attach();
-var wordnet = new natural.WordNet('./cache');
-var NGrams = natural.NGrams;
+
+// Add an item to the array, if it doesn't already exist,
+// in order to mimic a set
+function merge(array, newItem) {
+	array.forEach(function(i) {
+		if (i === newItem) return;
+	});
+	array.push(newItem);
+} 
 
 var ActivityItemSchema = new Schema({
-	
 	guid: {type: String, unique: true, index: true, required: true},
 	user: {type: ObjectId, index: true, ref: "Identity"}, 
 	message: {type: String},
@@ -35,18 +41,18 @@ var ActivityItemSchema = new Schema({
 	activity: [{}],
 	analyzed_at: {type: Date, default: (function () { return new Date(1); })},
 	created_at: {type: Date, default: Date.now}
-	
 });
 
-ActivityItemSchema.methods.analyze = function (cb) {
+ActivityItemSchema.methods.analyze = function(cb) {
 	var self = this;
 	var item = self;
 	var AI = this;
-	(function analyze_me (item, cb) {
-		var mongoose = require('mongoose');
-		var Topic = mongoose.model('Topic');
-		var JunkTopic = mongoose.model('JunkTopic');
-		var AI = mongoose.model('ActivityItem');
+	(function analyze_me(item, cb) {
+		console.log('Schema analyze_me');
+
+		var Topic = mongoose.model('Topic'),
+			JunkTopic = mongoose.model('JunkTopic'),
+			AI = mongoose.model('ActivityItem');
 		
 		var error = null;
 		
@@ -59,60 +65,48 @@ ActivityItemSchema.methods.analyze = function (cb) {
 		var message = item.message.toLowerCase();
 		
 		var url_pattern = /\(?\bhttps?:\/\/[-A-Za-z0-9+&@#\/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#\/%=~_()|]/gi;
-		var urls = message.match(url_pattern);
 		var hash_pattern = /#[a-zA-Z_0-9]*/gi;
-		var hashtags = message.match(hash_pattern);
 		
-		urls = urls || [];
-		hashtags = hashtags || [];
+		var urls = message.match(url_pattern) || [];
+		var hashtags = message.match(hash_pattern) || [];
 		
 		var keywords = [];
-		urls.forEach(function (url) {
-			domain = url.substr(url.indexOf("//")+2);
-			domain = domain.substr(0, domain.indexOf("/"));
-			var found = false;
-			keywords.forEach(function (existing) {
-				if (existing == domain) {
-					found = true;
-				}
-			});
-			if (!found) {
-				keywords.push(domain);
-			}
+
+		// Add URLs to list of keywords
+		urls.forEach(function(url) {
+			var domain = url.substr(url.indexOf("//") + 2);
+			// Cut off at first slash in URL, if one exists
+			domain = domain.substr(0, domain.indexOf("/")) || domain;
+			merge(keywords, domain);
 		});
-		hashtags.forEach(function (tag) {
+
+		// Add hashtags
+		hashtags.forEach(function(tag) {
 			tag = tag.substring(1);
-			var found = false;
-			keywords.forEach(function (existing) {
-				if (existing == tag) {
-					found = true;
-				}
-			});
-			if (!found) {
-				keywords.push(tag);
-			}
+			merge(keywords, tag);
 		});
 		
-		message = message.remove_urls().remove_hashtags().remove_screen_names().replace_punctuation();
+		// Natural language analysis of remainder of message
+		message = message
+					.remove_urls()
+					.remove_hashtags()
+					.remove_screen_names()
+					.replace_punctuation();
 		var chunks = message.split(" ");
 		var new_chunks = [];
-		chunks.forEach(function (chunk) {
+		chunks.forEach(function(chunk) {
+			// Not sure the purpose of this
 			if (chunk.indexOf("'") == -1) {
 				new_chunks.push(chunk);
 			}
 		});
-		message = chunks.join(" ");
-		var words = tokenizer.tokenize(message);//.tokenizeAndStem();
+		var words = tokenizer.tokenize(message);
 		
 		var ngram_length = words.length;
 		var phrases = [];
-		if (words.length > 1) {
-			phrases.push({text: words.join(" ")});
-			phrases.push({text: words.join("")});
-		}
 		while (ngram_length > 1) {
 			var tmp_ngrams = NGrams.ngrams(words, ngram_length);
-			tmp_ngrams.forEach(function (phrase) {
+			tmp_ngrams.forEach(function(phrase) {
 				phrases.push({text: phrase.join(" ")});
 				phrases.push({text: phrase.join("")});
 			});
@@ -120,36 +114,24 @@ ActivityItemSchema.methods.analyze = function (cb) {
 		}
 		
 		var tmp_words = [];
-		words.forEach(function (word) {
+		words.forEach(function(word) {
 			if (word.length > 2) {
 				tmp_words.push(word);
 			}
 		});
 		words = tmp_words;
 		
-		//console.log(words.join(","));
-		
 		check_phrases();
 		
-		function check_phrases () {
+		// Check topics for phrase matches
+		function check_phrases() {
+			console.log(phrases);
 			Topic.find()
-			.or(phrases)
-			.run(function (err, topics) {
-				//console.log("Topics by phrase: ");
-				//console.log(topics);
-				
+				.or(phrases)
+				.run(function(err, topics) {
 				if (!err && topics) {
-					topics.forEach(function (topic) {
-						var found = false;
-						words.forEach(function (word) {
-							if (word == topic.text) {
-								found = true;
-							}
-						});
-						if (!found) {
-							console.log("ADDING FROM PHRASE: "+topic.text);
-							words.push(topic.text);
-						}
+					topics.forEach(function(topic) {
+						merge(words, topic.text);
 					});
 				}
 				remove_topics_from_words();
@@ -159,13 +141,13 @@ ActivityItemSchema.methods.analyze = function (cb) {
 		function remove_topics_from_words () {
 			var tmp_words = [];
 			
-			JunkTopic.find({text: {"$in": words}}, function (err, topics) {
+			JunkTopic.find({text: {"$in": words}}, function(err, topics) {
 				if (err || !topics) {
 					topics = [];
 				}
-				words.forEach(function (word) {
+				words.forEach(function(word) {
 					var found = false;
-					topics.forEach(function (topic) {
+					topics.forEach(function(topic) {
 						if (topic.text == word) {
 							found = true;
 						}
@@ -178,13 +160,13 @@ ActivityItemSchema.methods.analyze = function (cb) {
 				tmp_words = [];
 				//console.log("okay, let's go! lookup_next_word()!");
 				
-				Topic.find({text: {"$in": words}}, function (err, topics) {
+				Topic.find({text: {"$in": words}}, function(err, topics) {
 					if (err || !topics) {
 						topics = [];
 					}
-					words.forEach(function (word) {
+					words.forEach(function(word) {
 						var found = false;
-						topics.forEach(function (topic) {
+						topics.forEach(function(topic) {
 							if (topic.text == word) {
 								found = true;
 							}
@@ -204,7 +186,7 @@ ActivityItemSchema.methods.analyze = function (cb) {
 			});
 		}
 		
-		function lookup_next_word () {
+		function lookup_next_word() {
 			if (words.length == 0) {
 				return add_topics();
 			}
@@ -215,24 +197,20 @@ ActivityItemSchema.methods.analyze = function (cb) {
 			var verb = 0;
 
 			if (word.length > 3) {
-				//console.log("> Word: "+word);
-				if (word.substring(0, word.length-3) == "ing") {
-					verb = 100;
-					classify_word(word, noun, verb, neither);
-				} else 
+				// Numbers
 				if (word.match(/^[0-9]*$/)) {
 					classify_word(word, noun, verb, neither);
+				// Everything else
 				} else {
 					wordnet.lookup(word, function(results) {
-
 						results.forEach(function(result) {
 							if (result.pos == "n") {
 								noun++;
-							} else 
-							if (result.pos == "v") {
+							} else if (result.pos == "v") {
 								verb++;
-							} else
-							if (result.pos == "a" || result.pos == "r" || result.pos == "s") {
+							} else if (result.pos == "a" || 
+									   result.pos == "r" || 
+									   result.pos == "s") {
 								neither++;
 							}
 						});
@@ -240,43 +218,35 @@ ActivityItemSchema.methods.analyze = function (cb) {
 					});
 					return;
 				}
+			// Automatically junk any word under 4 characters
 			} else {
 				save_junk_topic(word);
 				lookup_next_word();
 			}
 		}
-		function classify_word (w, n, v, neither) {
-			if (n == 0 && neither > v) {
+
+		function classify_word(w, n, v, neither) {
+			if (n === 0 && neither > v) {
 				save_junk_topic(w);
-				//console.log(w+": is ("+n+":"+v+"/"+neither+") I don't know.. Junk?");
 			} else {
-				//console.log(w+": noun:"+n+" / verb:"+v+" / neither:"+neither);
-				var found = false;
-				keywords.forEach(function (existing) {
-					if (existing == w) {
-						found = true;
-					}
-				});
-				if (!found) {
-					keywords.push(w);
-				}
+				merge(keywords, w);
 			}
 			lookup_next_word();
 		}
 		
-		function save_junk_topic (word) {
-			JunkTopic.findOne({text: word}, function (err, topic) {
+		function save_junk_topic(word) {
+			JunkTopic.findOne({text: word}, function(err, topic) {
 				if (err || (topic && topic.text == word)) {
 					return;
 				}
 				var junker = new JunkTopic({text: word});
-				junker.save(function (err) {
+				junker.save(function(err) {
 					// err?
 				});
 			});
 		}
 		
-		function add_topics () {
+		function add_topics() {
 			var existing_topics = [];
 			//console.log("Getting topics");
 			
@@ -289,7 +259,7 @@ ActivityItemSchema.methods.analyze = function (cb) {
 				done_with_topics();
 			}
 			
-			function add_new_topics () {
+			function add_new_topics() {
 				var new_topics = [];
 				keywords.forEach(function (keyword) {
 					var found = false;
@@ -303,49 +273,41 @@ ActivityItemSchema.methods.analyze = function (cb) {
 					}
 				});
 				
-				function add_each_topic () {
+				function add_each_topic() {
 					if (new_topics.length == 0) {
 						return done_adding();
 					}
 					topic_text = new_topics.shift();
 					var topic = new Topic({text: topic_text, ratings: {overall: 0}});
-					topic.save(function (err) {
+					topic.save(function(err) {
 						add_each_topic();
 					});
 				}
 				add_each_topic();
 			}
 			
-			function done_adding () {
+			function done_adding() {
 				var topic_ids = [];
 				var topic_texts = [];
-				Topic.find({text: {"$in": keywords}}, function (err, t) {
-					t.forEach(function (topic) {
+				Topic.find({text: {"$in": keywords}}, function(err, t) {
+					t.forEach(function(topic) {
 						topic_ids.push(topic.id);
 						topic_texts.push(topic.text);
 					});
 					if (!item.topics || !(item.topics.length > 0)) {
 						item.topics = topic_ids;
 					} else {
-						topic_ids.forEach(function (new_topic) {
-							var found = false;
-							item.topics.forEach(function (existing) {
-								if (new_topic == existing) {
-									found = true;
-								}
-							});
-							if (!found) {
-								item.topics.push(new_topic);
-							}
+						topic_ids.forEach(function(new_topic) {
+							merge(item.topics, new_topic);
 						});
 					}
 					//console.log("ADDED TOPIC IDS! "+item.topics.length);
 					//console.log(self.message);
 					//console.log("Topics: "+topic_texts.join(", "));
 					item.commit("topics");
-					item.save(function (err) {
-						t.forEach(function (topic) {
-							topic.save(function (err) {
+					item.save(function(err) {
+						t.forEach(function(topic) {
+							topic.save(function(err) {
 								// err
 							});
 						});
@@ -356,13 +318,13 @@ ActivityItemSchema.methods.analyze = function (cb) {
 
 			}
 			
-			function done_with_topics () {
+			function done_with_topics() {
 				//console.log("calling back... "+item.topics.length);
 				
 				rate_that_shit();
 			}
 			
-			function rate_that_shit () {
+			function rate_that_shit() {
 				var topic_ratings = 0;
 				var topic_count = 0;
 				var char_ratings = 0;
@@ -374,9 +336,9 @@ ActivityItemSchema.methods.analyze = function (cb) {
 				.populate("characteristics")
 				.populate("topics")
 				.populate("user")
-				.run(function (err, _item) {
+				.run(function(err, _item) {
 					if (!err && _item) {
-						_item.topics.forEach(function (topic) {
+						_item.topics.forEach(function(topic) {
 							if (topic.ratings.overall > 0 || topic.ratings.overall < 0) {
 								if (parseInt(topic.ratings.overall) != 0) {
 									topic_ratings += parseFloat(topic.ratings.overall);
@@ -388,7 +350,7 @@ ActivityItemSchema.methods.analyze = function (cb) {
 							factors.push(topic_ratings/topic_count);
 						}
 						
-						_item.characteristics.forEach(function (ch) {
+						_item.characteristics.forEach(function(ch) {
 							if (parseFloat(ch.ratings.overall) != 0) {
 								char_ratings += parseFloat(ch.ratings.overall)*.2;
 								char_count++;
@@ -435,7 +397,7 @@ ActivityItemSchema.methods.analyze = function (cb) {
 }
 
 
-ActivityItemSchema.pre('save', function (next) {
+ActivityItemSchema.pre('save', function(next) {
 	var self = this;
 	
 	if (!this.ratings) {
@@ -447,10 +409,10 @@ ActivityItemSchema.pre('save', function (next) {
 	
 	var orig = self.message
 	//console.log("Starting message: "+self.message);
-	unshorten_urls(self.message, function (m) {
+	unshorten_urls(self.message, function(m) {
 		//console.log("New message (1): "+m);
 		if (self.message != m) {
-			unshorten_urls(m, function (m) {
+			unshorten_urls(m, function(m) {
 				//console.log("New message (2): "+m);
 				self.message = m;
 				next();
@@ -488,7 +450,7 @@ ActivityItemSchema.pre('save', function (next) {
 	/**/
 });
 
-function unshorten_urls (_message, cb) {
+function unshorten_urls(_message, cb) {
 	var regex = /\(?\bhttps?:\/\/[-A-Za-z0-9+&@#\/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#\/%=~_()|]/gi;
 	var matches = _message.match(regex);
 	if (matches) {
@@ -500,7 +462,7 @@ function unshorten_urls (_message, cb) {
 			if (match.length > 28) {
 				unshorten_next();
 			} else {
-				unshorten(match, function (url) {
+				unshorten(match, function(url) {
 					if (match != url) {
 						match = match.replace(/ /g, "%20");
 						_message = _message.replace(match, url);
@@ -510,7 +472,7 @@ function unshorten_urls (_message, cb) {
 			}
 		}
 		unshorten_next();
-		function finished () {
+		function finished() {
 			cb(_message);
 		}
 	} else {

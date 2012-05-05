@@ -33,12 +33,10 @@ module.exports = {
 			if (err || !task) {
 				return res.send("No task set up for monitoring a twitter stream..");
 			}
-			//console.log("Task: "+task.id);
 			
 			var attr = task.attributes || {};
 			
-			if (!attr.connected || attr.last_ping.getTime() > Date.now()-stream_timeout) {
-				//console.log("Already streaming ("+attr.last_ping.getTime()+" > "+(Date.now()-stream_timeout)+")");
+			if (attr.connected && attr.last_ping.getTime() > Date.now() - stream_timeout) {
 				return res.send("Already streaming...");
 			}
 			
