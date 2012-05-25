@@ -1,0 +1,46 @@
+<%
+if (!settings) { settings = {}; } 
+if (!settings.consumer_key) { settings.consumer_key = ""; } 
+if (!settings.consumer_secret) { settings.consumer_secret = ""; } 
+if (!settings.callback_url) { settings.callback_url = ""; } 
+%>
+<h1>Twitter Configuration</h1>
+<p>
+	Copy the details from your Twitter App, which you can find or create at <a href="https://dev.twitter.com/apps" target="_blank">https://dev.twitter.com/apps</a>
+</p>
+<p>
+	<form method="post" action="/admin/setup/1">
+		<table>
+			<tr>
+				<td>
+					<strong>Consumer Key:</strong> 
+				</td>
+				<td>
+					<input name="settings[twitter][consumer_key]" value="<%= settings.consumer_key %>" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong>Consumer Secret:</strong> 
+				</td>
+				<td>
+					<input name="settings[twitter][consumer_secret]" value="<%= settings.consumer_secret %>" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong>Callback URL:</strong> 
+				</td>
+				<td>
+					<input name="settings[twitter][callback_url]" value="<%= settings.callback_url %>" />
+				</td>
+			</tr>
+			<tr>
+				<td>&nbsp;</td>
+				<td>
+					<input type="submit" value="Save &amp; Next" />
+				</td>
+			</tr>
+		</table>
+	</form>
+</p>

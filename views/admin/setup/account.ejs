@@ -1,0 +1,37 @@
+<%
+if (!settings) { settings = {}; } 
+if (!settings.user_name) { settings.user_name = ""; } 
+if (!settings.password) { settings.password = ""; } 
+%>
+<h1>Setup User Account</h1>
+<p>
+	Set up a user name and password.
+</p>
+<p>
+	<form method="post" action="/admin/setup/0">
+		<table>
+			<tr>
+				<td>
+					<strong>User name:</strong> 
+				</td>
+				<td>
+					<input name="settings[user_name]" value="<%= settings.user_name %>" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong>Password:</strong> 
+				</td>
+				<td>
+					<input type="password" name="settings[password]" />
+				</td>
+			</tr>
+			<tr>
+				<td>&nbsp;</td>
+				<td>
+					<input type="submit" value="Save &amp; Next" />
+				</td>
+			</tr>
+		</table>
+	</form>
+</p>

@@ -2,72 +2,133 @@
  *  Twitter Controller
  **/
 
-var sys = require('sys'),
-	http = require('http'),
-	mongoose = require('mongoose'),
-	validator = require('validator'),
-	libsaturn = require('../lib/saturn.js'),
+var mongoose = require('mongoose'),
+	twitter_api = require('twitter'),
+	url = require('url'),
 	conf = require('node-config');
-	
-var	TwitterUser = mongoose.model('TwitterUser'),
+
+var	Settings = mongoose.model('Settings'),
 	Task = mongoose.model('Task'),
 	ActivityItem = mongoose.model('ActivityItem'),
-	Characteristic = mongoose.model('Characteristic'),
 	Identity = mongoose.model('Identity'),
-	User = mongoose.model('User');
+	Characteristic = mongoose.model('Characteristic');
 
-var ViewTemplatePath = 'services';
-
-
-var util = require('util'),
-	twitter_api = require('twitter');
-
-module.exports = {
+exports.controller = function(req, res, next) {
+	Controller.call(this, req, res);
+	var self = this;
 	
-	stream: function (req, res, next, me) {
+	
+	// TWITTER AUTHENTICATION
+	
+	// oauth redirect
+	self.oauth = function () {
+		var path = url.parse(req.url, true);
+		
+		Settings.findOne({option: "twitter"}, function(err, tw) {
+			if (err) throw err;
+			if (!tw) throw new Error("Couldn't find Twitter settings. Have you set it up yet?");
+			
+			twitter = get_twitter(tw.value);
+			twitter.login("/twitter/oauth", "/twitter/auth")(req, res, next);
+		});
+	},
+	
+	// oauth callback
+	self.auth = function() {
+		if (!req.user.isUser) { console.log("You're not a user.. redirecting"); return res.redirect("/admin/login"); }
+		
+		var tw;
+		
+		// THIS IS ANNOYING!
+		// When the user authenticates, the Twitter module redirects /twitter/auth?[keys_here] to /twitter/auth with the keys in a cookie
+		// The cookie doesn't play nice with Express's cookieParser, so you have to extract the cookie via the internal cookie() method
+		var tmp_twitter = get_twitter({consumer_key:"", consumer_secret:""});
+		var twitter_credentials = tmp_twitter.cookie(req);
+		
+		var access_token_key = twitter_credentials.access_token_key;
+		var access_token_secret = twitter_credentials.access_token_secret;
+		var twitter_name = twitter_credentials.screen_name;
+		
+		// Save keys to the 'twitter' option in the Settings collection
+		Settings.findOne({option: "twitter"}, function(err, _tw) {
+			tw = _tw
+			if (err) throw err;
+			if (!tw) throw new Error("Couldn't find Twitter settings. Have you set it up yet?");
+			
+			twitter = get_twitter(tw.value, access_token_key, access_token_secret);
+			twitter.verifyCredentials(function(err, data) {
+				//console.log(util.inspect(data));
+			}).showUser(twitter_name, profile_retrieved);
+		});
+		
+		// Just (data)? Payload seems to be returned in first parameter instead of second as in (err, data)
+		// Looks to be caused by this:
+		// In ./node_modules/twitter/lib/twitter.js:104
+		// callback(json);
+		function profile_retrieved (data) {
+			
+			if (data) {
+				
+				tw.value.access_token_key = access_token_key;
+				tw.value.access_token_secret = access_token_secret;
+				tw.commit('value');
+				tw.save(function(err) {
+					if (err) {
+						return res.send("Twitter wasn't connected.. Error while saving to the database");
+					}
+					return res.send("Twitter successfully connected");
+				});
+			} else {
+				return res.send("Failed to retrieve Twitter details.");
+			}
+			//res.send(data);
+		}
+	}
+	
+	
+	// GETTING TWEETS
+	
+	self.stream = function () {
 		
 		var stream_timeout = 8*1000;
 		var ping_frequency = 2*1000;
 		
-		Task.findOne({controller: "TwitterController", method: "stream"}, function (err, task) {
-			if (err || !task) {
-				return res.send("No task set up for monitoring a twitter stream..");
-			}
+		
+		Settings.findOne({option: "twitter"}, function(err, tw) {
+			if (err) throw err;
+			if (!tw) throw new Error("Couldn't find Twitter settings. Have you set it up yet?");
 			
-			var attr = task.attributes || {};
-			
-			if (attr.connected && attr.last_ping.getTime() > Date.now() - stream_timeout) {
-				return res.send("Already streaming...");
-			}
-			
-			console.log("OPENING NEW STREAM");
-			
-			attr.connected = true;
-			update_task();
-			
-			function update_task (cb) {
-				if (attr.connected) {
-					attr.last_ping = new Date();
-					Task.update({controller: "TwitterController", method: "stream"}, {attributes: attr}, {}, function () {
-						// err?
-					});
-					setTimeout(update_task, ping_frequency);
+			var access_token_key = tw.value.access_token_key;
+			var access_token_secret = tw.value.access_token_secret;
+		
+			Task.findOne({controller: "TwitterController", method: "stream"}, function (err, task) {
+				if (err || !task) {
+					return res.send("No task set up for monitoring a twitter stream..");
 				}
-			}
 			
-			User.findOne()
-				.populate("twitter")
-				.run(function (err, user) {
-				if (err || !user) {
-					//console.log("no user found");
-					attr.connected = false;
-					return update_task(function (err) {
-						res.send("No user found");
-					});
+				var attr = task.attributes || {};
+			
+				if (attr.connected && attr.last_ping.getTime() > Date.now() - stream_timeout) {
+					return res.send("Already streaming...");
 				}
-				me = user;
+			
+				console.log("OPENING NEW STREAM");
+			
+				attr.connected = true;
+				update_task();
+			
+				function update_task (cb) {
+					if (attr.connected) {
+						attr.last_ping = new Date();
+						Task.update({controller: "TwitterController", method: "stream"}, {attributes: attr}, {}, function () {
+							// err?
+						});
+						setTimeout(update_task, ping_frequency);
+					}
+				}
+			
 				//console.log(me);
-				twitter = get_twitter(me.twitter.access_token_key, me.twitter.access_token_secret);
+				twitter = get_twitter(tw.value, access_token_key, access_token_secret);
 				
 				var streaming = false;
 				twitter.stream('user', {}, function(stream) {
@@ -96,8 +157,9 @@ module.exports = {
 							res.send(error);
 						});
 					});
-					stream.on('end', function() {
+					stream.on('end', function(err) {
 						console.log("stream.end");
+						console.log(err);
 						attr.connected = false;
 						streaming = false;
 						try {
@@ -129,37 +191,34 @@ module.exports = {
 				});
 			});
 		});
-		
-	},
+	}
 	
-	timeline: function (req, res, next, me) {
-		//console.log("TwitterController.js::test()");
-		if (!res) {
-			res = {};
-			res.send = function () { };
-		}
-		
-		var me;
+	self.timeline = function () {
+		//console.log("TwitterController.js::timeline()");
 		var twitter;
 		
-		Task.findOne({controller: "TwitterController", method: "timeline"}, function (err, task) {
-			if (err || !task) {
-				return res.send("Couldn't find timeline task");
-			}
-			var attr = task.attributes || {};
-			var since_id = attr.since_id || 0;
-			User.findOne()
-				.populate("twitter")
-				.run(function (err, user) {
-				if (err || !user) {
-					//console.log("no user found");
-					res.send("Done");
-					return;
+		Settings.findOne({option: "twitter"}, function(err, tw) {
+			if (err) throw err;
+			if (!tw) throw new Error("Couldn't find Twitter settings. Have you set it up yet?");
+			
+			var access_token_key = tw.value.access_token_key;
+			var access_token_secret = tw.value.access_token_secret;
+			
+			Task.findOne({controller: "TwitterController", method: "timeline"}, function (err, task) {
+				if (err || !task) {
+					return res.send("Couldn't find timeline task");
 				}
-				me = user;
-				//console.log(me);
-				twitter = get_twitter(me.twitter.access_token_key, me.twitter.access_token_secret);
-				twitter.getHomeTimeline({since_id: since_id, count: 100, include_entities: true}, function (err, tweets) {
+				var attr = task.attributes || {};
+				var since_id = attr.since_id || 0;
+			
+				twitter = get_twitter(tw.value, access_token_key, access_token_secret);
+				// Another instance of payload being same parameter as err.... shit.
+				twitter.getHomeTimeline({since_id: since_id, count: 100, include_entities: true}, function (tweets) {
+					
+					if (err) {
+						console.log("Error:");
+						console.log(err);
+					}
 					
 					if (!tweets || tweets.length == 0 || !tweets[0] || !tweets[0].hasOwnProperty("id_str")) {
 						//console.log("No tweets..");
@@ -202,154 +261,10 @@ module.exports = {
 				});
 			});
 		});
-	},
-
-	// oauth redirect
-	oauth: function (req, res, next, me) {
-		var self = this,
-			url = require('url');
-		var path = url.parse(req.url, true);
-		twitter = get_twitter();
-		
-		twitter.login("/twitter/oauth", "/twitter/auth")(req, res, next);
-		//res.writeHead(303, { "location": "https://twitter.com/oauth/authorize?oauth_token=" + conf.twitter.consumer_key });
-		//res.end();
-	},
-	
-	// receive & process oauth from Twitter
-	auth: function (req, res, next, me) {
-		var redirect_url = "/dashboard";
-		var twitter_user;
-		var profile = {};
-		var user_name = "";
-		var registered = false;
-		var logged_in = false;
-		
-		/**/
-		var access_token_key = req.query.access_token_key;
-		var access_token_secret = req.query.access_token_secret;
-		twitter = get_twitter(access_token_key, access_token_secret);
-		twitter.verifyCredentials(function(data) {
-			//console.log(util.inspect(data));
-		}).showUser(req.query.screen_name, profile_retrieved);
-		
-		/**/
-		
-		function finish (err) {
-			if (err) {
-				return res.render("500", {error: err.message});
-			}
-			if (!registered && !logged_in) {
-				return res.render("500", {error: "Something went wrong."});
-			}
-			
-			return res.redirect(redirect_url);
-		}
-		
-		function log_in () {
-			res.setHeader('Set-Cookie', "session_key="+me.getSessionKey()+"; path=/");
-			res.setHeader('Set-Cookie', "session_token="+me.generateToken()+"; path=/");
-			logged_in = true;
-			return finish();
-		}
-		
-		function profile_retrieved (data) {
-			console.log("profile_retrieved()");
-			
-			profile = data;
-			
-			if (me.isUser()) {
-				return connect_twitter_to_user();
-			} else {
-				return find_user_by_twitter();
-			}
-		}
-		
-		function connect_twitter_to_user () {
-			console.log("connect_twitter_to_user()");
-			logged_in = true;
-			me.save(function (err) {
-				if (err) {
-					return finish(new Error("There was an error saving the access_token_key ("+access_token_key+")"));
-				}
-				return finish();
-			});
-		}
-		
-		function find_user_by_twitter () {
-			console.log("find_user_by_twitter()");
-			TwitterUser.findOne({"access_token_key": access_token_key})
-			.populate("user")
-			.run(function (err, tw) {
-				if (err) {
-					return finish(err);
-				}
-				
-				if (tw && tw.access_token_key == access_token_key) {
-					twitter_user = tw;
-					me = twitter_user.user;
-					me.save();
-					
-					if (!twitter_user.tweets || twitter_user.tweets.length == 0) {
-						//redirect_url = "/twitter/history";
-					}
-					return log_in();
-				} else {
-					return register_via_twitter();
-				}
-			});
-		}
-		
-		function register_via_twitter () {
-			console.log("register_via_twitter()");
-			//redirect_url = "/twitter/history";
-			var twitter_id_str = String(profile.id_str);
-			user_name = profile.screen_name && String(profile.screen_name).length > 0 ? profile.screen_name : "No name?";
-			console.log("user name: "+user_name);
-			
-			User.findOne({user_name: user_name}, function (err, existing) {
-				if (!err && existing && existing.user_name == user_name) {
-					user_name = user_name + String(Math.round(Math.random()*900+100));
-				}
-				
-				twitter_user = new TwitterUser({
-					access_token_key: access_token_key, 
-					access_token_secret: access_token_secret, 
-					profile: profile
-				});
-				twitter_user.save(function (err) {
-					if (err) {
-						return finish(err);
-					}
-					return attach_twitter_to_me();
-				});
-			});
-		}
-		
-		function attach_twitter_to_me () {
-			if (!user_name || user_name == "") {
-				return finish(new Error("Something really bad happened."));
-			}
-			me = new User({
-				user_name: user_name, 
-				twitter: twitter_user.id
-			});
-			me.registerUser();
-			me.setPassword("pwd"+Date.now());
-			me.save(function (err) {
-				if (err) {
-					console.error("While saving user after twitter save: "+err);
-					return finish(err);
-				}
-				twitter_user.user = me.id;
-				twitter_user.save(function (err) {
-					log_in();
-				});
-			});
-		}
 	}
-	// end /twitter/auth
 }
+
+
 
 function process_tweet (tweet, cb) {
 	//console.log("Processing tweet: "+tweet.text.substring(0, 50));
@@ -395,7 +310,6 @@ function process_tweet (tweet, cb) {
 			activity_item.characteristics = [];
 			activity_item.attributes = {};
 			activity_item.data = tweet;
-			
 			
 			activity_item.message = tweet.text;
 			
@@ -451,26 +365,12 @@ function process_tweet (tweet, cb) {
 			}
 		});
 	});
-	
 }
 
-function get_twitter_user (user_id, cb) {
-	TwitterUser.findOne({user: user_id}, {access_token:1, access_token_secret:1}, function (err, twitter_user) {
-		if (err) {
-			return cb(err);
-		}
-		if (!twitter_user || !twitter_user.access_token) {
-			return cb(new Error("Not linked with Twitter?"));
-		}
-		
-		cb(err, twitter_user);
-	});
-}
-
-function get_twitter (access_token_key, access_token_secret) {
+function get_twitter (settings, access_token_key, access_token_secret) {
 	var twit = new twitter_api({
-		consumer_key: conf.twitter.consumer_key,
-		consumer_secret: conf.twitter.consumer_secret,
+		consumer_key: settings.consumer_key,
+		consumer_secret: settings.consumer_secret,
 		access_token_key: access_token_key,
 		access_token_secret: access_token_secret
 	});

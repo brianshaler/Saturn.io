@@ -39,8 +39,8 @@ var ActivityItemSchema = new Schema({
 	external_resources: [{type: ObjectId, ref: "ExternalResource"}],
 	data: {},
 	activity: [{}],
-	analyzed_at: {type: Date, default: (function () { return new Date(1); })},
-	created_at: {type: Date, default: Date.now}
+	analyzed_at: {type: Date, default: (function () { return new Date(1); }), index: true},
+	created_at: {type: Date, default: Date.now, index: true}
 });
 
 ActivityItemSchema.methods.analyze = function(cb) {
@@ -125,7 +125,7 @@ ActivityItemSchema.methods.analyze = function(cb) {
 		
 		// Check topics for phrase matches
 		function check_phrases() {
-			console.log(phrases);
+			//console.log(phrases);
 			Topic.find()
 				.or(phrases)
 				.run(function(err, topics) {

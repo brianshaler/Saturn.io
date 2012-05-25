@@ -1,1 +1,3 @@
-exports.conf = {};
+var conf = {};
+
+exports.conf = conf;

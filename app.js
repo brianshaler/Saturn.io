@@ -1,140 +1,139 @@
 /**
- * Module dependencies.
- */
-var fs = require('fs'), express = require('express'),
-	mongoose = require('mongoose'), nodepath = require('path'),
-	conf = require('node-config');
-
-var path = __dirname;
-var app;
-
-/**
- * Initial bootstrapping
- */
-exports.boot = function(params){
-	
-	//Create our express instance
-	app = express.createServer();	
-	
-	// Import configuration
-	//require(path + '/conf/configuration.js')(app,express);
-	// dev
-	app.use(express.errorHandler({ dumpExceptions: true, showStack: true }))
-	// test
-	//app.use(express.errorHandler({ dumpExceptions: false, showStack: false }))
-	// prod
-	//app.use(express.errorHandler({ dumpExceptions: true, showStack: false }))
-	
-	// Bootstrap application
-	bootApplication(app);
-	bootModels(app);
-	bootControllers(app);
-	
-	return app;
-	
-};
-
-/**
- *	App settings and middleware
- *	Any of these can be added into the by environment configuration files to 
- *	enable modification by env.
+ * Base application
  */
 
-function bootApplication(app) {	 
-	 
-	// launch
-	// app.use(express.logger({ format: ':method :url :status' }));
-	app.use(express.bodyParser());
-	app.use(express.methodOverride());
-	app.use(express.cookieParser());
-	app.use(express.session({ secret: 'saturnsaturnsaturnsaturnsaturn!!!' }));
-	app.use(express.static(path + '/public'));	// Before router to enable dynamic routing
-	app.use(app.router);
+var express = require('express'),
+	fs = require('fs'),
+	mongoose = require('mongoose'),
+	conf = require('node-config'),
+	crypto = require('crypto'),
+	cron = require('cron').CronJob;
 
-	// Example 500 page
-	app.error(function(err, req, res){
-		res.render('500',{error:err});
+
+var SessionMongoose = require('session-mongoose');
+var mongooseSessionStore;
+
+var app = module.exports = express.createServer();
+
+// Asynchronously load config settings then finish booting app
+conf.initConfig(function(err) {
+	if (err) throw err;
+	
+	mongooseSessionStore = new SessionMongoose({
+	    url: conf.db
 	});
 	
-	// Example 404 page via simple Connect middleware
-	app.use(function(req, res){
-		res.render('404');
-	});
-
-	// Setup ejs views as default, with .html as the extension
-	app.set('views', path + '/views');
-	app.register('.html', require('ejs'));
-	app.set('view engine', 'html');
-
-	// Some dynamic view helpers
-	app.dynamicHelpers({
-	
-	request: function(req){
-		 return req;
-	},
-			
-	hasMessages: function(req){
-			return Object.keys(req.session.flash || {}).length;
-		},
-
-		messages: function(req){
-			return function(){
-				var msgs = req.flash();
-				console.log(msgs);
-				return Object.keys(msgs).reduce(function(arr, type){
-					return arr.concat(msgs[type]);
-				}, []);				
+	// Configuration
+	app.configure(function(){
+		app.use(express.favicon());
+		app.set('views', __dirname + '/views');
+		app.set('view engine', 'ejs');
+		app.use(express.cookieParser());
+		app.use(express.session({
+			cookie: {maxAge: 1000 * 86400 * 365 * 5},
+			secret: conf.secret,
+			store: mongooseSessionStore // Or Redis?
+		}));
+		// flash messages
+		app.use(function (req, res, next) {
+			req.flash = function (message) {
+				if (!req.session.messages || !(req.session.messages.length > 0)) {
+					req.session.messages = [];
+				}
+				req.session.messages.push(message);
 			}
-		}
+			req.message_text = "";
+			if (req.session.messages && req.session.messages.length > 0) {
+				req.messages = req.session.messages;
+				req.session.messages = [];
+			} else {
+				req.messages = [];
+			}
+			if (req.messages && req.messages.length > 0) {
+				res.partial("app/message", {messages: req.messages}, function (err, str) {
+					if (err) throw err;
+					req.message_text = str;
+					next();
+				});
+			} else {
+				next();
+			}
+		});
+		// flash message helper function
+		app.dynamicHelpers({flash_message: function (req, res) {
+			return function () {
+				return req.message_text;
+			}
+		}});
+		app.use(express.bodyParser());
+		app.use(express.methodOverride());
+		// auth
+		app.use(function(req, res, next){
+			req.user = {isUser: false};
+			if (req.session.session_key) {
+				Settings = mongoose.model('Settings');
+				Settings.findOne({option: "app"}, function (err, s) {
+					if (!err && s) {
+						if (s.value.session_key && s.value.session_key == req.session.session_key) {
+							var correct_token = crypto.createHash('sha1').update(req.session.user_name+"|"+req.session.session_key).digest('hex');
+							if (req.session.session_token == correct_token) {
+								req.user.isUser = true;
+							}
+						}
+					}
+					next();
+				});
+			} else {
+				next();
+			}
+		});
+		
+		// Example 500 page
+		app.error(function(err, req, res){
+			res.render('500',{error:err});
+		});
 	});
-}
-
-//Bootstrap models 
-function bootModels(app) {
 	
-	fs.readdir(path + '/models', function(err, files){
+	app.configure('development', function(){
+		app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
+	});
+	
+	app.configure('production', function(){
+		app.use(express.errorHandler());
+	});
+	
+	// Models
+	mongoose.connect(conf.db);
+	fs.readdir(__dirname + '/models', function(err, files){
 		if (err) throw err;
 		files.forEach(function(file){
-			bootModel(app, file);
+			require(__dirname + '/models/'+ file)
 		});
-	});
-	
-	// Connect to mongoose
-	mongoose.connect(conf.db);
-	
-}
-
-// Bootstrap controllers
-function bootControllers(app) {
-	fs.readdir(path + '/controllers', function(err, files){
-		if (err) throw err;
-		files.forEach(function(file){			
-			// bootController(app, file);				
-		});
-	
-
-	});
-	
-	require(path + '/controllers/AppController')(app);			// Include
-	
-}
-
-// simplistic model support
-function bootModel(app, file) {
-
-		var name = file.replace('.js', ''),
-			schema = require(path + '/models/'+ name);				// Include the mongoose file				
 		
-}
-
-// Load the controller, link to its view file from here
-function bootController(app, file) {
-	
-	var name = file.replace('.js', ''),
-			controller = path + '/controllers/' + name,	 // full controller to include
-			template = name.replace('Controller','').toLowerCase();									// template folder for html - remove the ...Controller part.
-	
-	// Include the controller
-	// require(controller)(app,template);			// Include
-	
-}
+		// Routes
+		require('./controllers/index.js').init(app, function () {
+			// Example 404 page via simple Connect middleware
+			//app.use(app.router);
+			console.log("express.static('"+__dirname + '/public'+"')");
+			app.use(express.static(__dirname + '/public'));
+			app.use(function(req, res){
+				res.render('404');
+			});
+		});
+		
+		app.listen(conf.port, function(){
+			console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
+		});
+		// every 5 seconds
+		cron('*/5 * * * * *', function () {
+			try {
+				var controller = require('./controllers/index');
+				controller._tick(app);
+			} catch (ex) {
+				console.log("Something really bad happened... ");
+				console.log(ex);
+			}
+		});
+		
+	});
+}, 'conf');

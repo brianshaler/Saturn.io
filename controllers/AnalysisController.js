@@ -5,8 +5,6 @@
 var sys = require('sys'),
 	http = require('http'),
 	mongoose = require('mongoose'),
-	validator = require('validator'),
-	libsaturn = require('../lib/saturn.js'),
 	natural = require('natural'),
 	conf = require('node-config');
 	
@@ -24,14 +22,13 @@ var wordnet = new natural.WordNet('./cache');
 var util = require('util'),
 	twitter_api = require('twitter');
 
-module.exports = {
+
+exports.controller = function (req, res) {
+	Controller.call(this, req, res);
+	var self = this;
 	
 	// run via cron, please
-	analyze: function (req, res, next, me) {
-		if (!res) {
-			res = {};
-			res.send = function () { };
-		}
+	self.analyze = function () {
 		
 		ActivityItem.find({analyzed_at: {"$lt": (new Date(Date.now()-86300*1000))}, created_at: {"$gt": (new Date(Date.now()-86400*1000))}})
 		.sort('posted_at', -1)
@@ -51,7 +48,6 @@ module.exports = {
 				var item = items.shift();
 				//console.log("Analyzing item: "+item.message);
 				//item.ratings = ratings;
-				//libsaturn.analyze(item);
 				item.analyzed_at = new Date();
 				item.save(function (err) {
 					item.analyze(function (err, _item) {

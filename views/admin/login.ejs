@@ -1,0 +1,32 @@
+<%
+if (!user_name) { user_name = ""; } 
+%>
+<h1>Login</h1>
+<p>
+	<form method="post" action="/admin/login">
+		<table>
+			<tr>
+				<td>
+					<strong>User name:</strong> 
+				</td>
+				<td>
+					<input name="user_name" value="<%= user_name %>" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong>Password:</strong> 
+				</td>
+				<td>
+					<input type="password" name="password" />
+				</td>
+			</tr>
+			<tr>
+				<td>&nbsp;</td>
+				<td>
+					<input type="submit" value="Login" />
+				</td>
+			</tr>
+		</table>
+	</form>
+</p>
