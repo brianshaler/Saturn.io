@@ -26,7 +26,7 @@ exports.controller = function(req, res, next) {
 		
 		Settings.findOne({option: "twitter"}, function(err, tw) {
 			if (err) throw err;
-			if (!tw) throw new Error("Couldn't find Twitter settings. Have you set it up yet?");
+			if (!tw) tw = new Settings({option: "twitter"});
 			
 			twitter = get_twitter(tw.value);
 			twitter.login("/twitter/oauth", "/twitter/auth")(req, res, next);
@@ -53,7 +53,7 @@ exports.controller = function(req, res, next) {
 		Settings.findOne({option: "twitter"}, function(err, _tw) {
 			tw = _tw
 			if (err) throw err;
-			if (!tw) throw new Error("Couldn't find Twitter settings. Have you set it up yet?");
+			if (!tw) tw = new Settings({option: "twitter"});
 			
 			twitter = get_twitter(tw.value, access_token_key, access_token_secret);
 			twitter.verifyCredentials(function(err, data) {
@@ -76,7 +76,7 @@ exports.controller = function(req, res, next) {
 					if (err) {
 						return res.send("Twitter wasn't connected.. Error while saving to the database");
 					}
-					return res.send("Twitter successfully connected");
+					return res.send("Twitter successfully connected. <a href=\"/admin/setup\">Continue setup?</a>");
 				});
 			} else {
 				return res.send("Failed to retrieve Twitter details.");
@@ -96,7 +96,7 @@ exports.controller = function(req, res, next) {
 		
 		Settings.findOne({option: "twitter"}, function(err, tw) {
 			if (err) throw err;
-			if (!tw) throw new Error("Couldn't find Twitter settings. Have you set it up yet?");
+			if (!tw) return res.send("Couldn't find Twitter settings. Have you set it up yet?");
 			
 			var access_token_key = tw.value.access_token_key;
 			var access_token_secret = tw.value.access_token_secret;
@@ -199,7 +199,7 @@ exports.controller = function(req, res, next) {
 		
 		Settings.findOne({option: "twitter"}, function(err, tw) {
 			if (err) throw err;
-			if (!tw) throw new Error("Couldn't find Twitter settings. Have you set it up yet?");
+			if (!tw) return res.send("Couldn't find Twitter settings. Have you set it up yet?");
 			
 			var access_token_key = tw.value.access_token_key;
 			var access_token_secret = tw.value.access_token_secret;
