@@ -6,7 +6,8 @@ var envs = {};
 var conf = {
     db: "mongodb://localhost/saturn",
 	port: 3000,
-	live: false
+	live: false,
+	secret: 'secret'
 };
 
 
@@ -16,16 +17,7 @@ envs.development = {
 	base_url: "http://local.saturn.io:3000",
 	port: 3000,
 	live: false,
-	
-	twitter: {
-		// local.saturn.io
-		consumer_key: "LgLCjba8GAl4fwPVJFhdA",
-		consumer_secret: "ir1L5t0htKDN83ZZlX8pgdO15SbEH6rb0P797bvoAw", 
-		request_token_url: "https://api.twitter.com/oauth/request_token", 
-		authorize_url: "https://api.twitter.com/oauth/authorize", 
-		access_token_url: "https://api.twitter.com/oauth/access_token", 
-		callback_url: "http://local.saturn.io:3000/twitter/auth",
-	}
+	secret: 'dev_secret_CHANGE_ME'
 };
 
 
@@ -35,10 +27,7 @@ envs.production = {
 	base_url: "http://saturn.io",
 	port: 1337,
 	live: true,
-	
-	twitter: {
-		// REQUIRED: Production Twitter App keys
-	}
+	secret: 'production_secret_CHANGE_ME'
 };
 
 
@@ -46,17 +35,7 @@ envs.production = {
 envs.test = {
     db: "mongodb://localhost/saturn",
 	port: 3000,
-	live: false,
-	
-	twitter: {
-		// local.saturn.io
-		consumer_key: "LgLCjba8GAl4fwPVJFhdA",
-		consumer_secret: "ir1L5t0htKDN83ZZlX8pgdO15SbEH6rb0P797bvoAw", 
-		request_token_url: "https://api.twitter.com/oauth/request_token", 
-		authorize_url: "https://api.twitter.com/oauth/authorize", 
-		access_token_url: "https://api.twitter.com/oauth/access_token", 
-		callback_url: "http://local.saturn.io:3000/twitter/auth",
-	}
+	live: false
 };
 
 
