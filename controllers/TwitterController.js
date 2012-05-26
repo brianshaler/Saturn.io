@@ -279,7 +279,7 @@ exports.controller = function(req, res, next) {
 
 
 function process_tweet (tweet, cb) {
-	console.log("Processing tweet: "+tweet.text.substring(0, 50));
+	//console.log("Processing tweet: "+tweet.text.substring(0, 50));
 	if (tweet.text.substring(0, 4) == "RT @") {
 		//console.log(tweet);
 	}
@@ -372,7 +372,7 @@ function process_tweet (tweet, cb) {
 							});
 						}
 						if (cb) {
-							console.log("Finished: "+tweet.text.substring(0, 50));
+							//console.log("Finished: "+tweet.text.substring(0, 50));
 							cb();
 						}
 					});
