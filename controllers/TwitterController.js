@@ -148,7 +148,12 @@ exports.controller = function(req, res, next) {
 						if (data && data.friends && data.friends.length > 0) { return; }
 						if (data && data.text && data.user && data.user.screen_name) {
 							//console.log("new tweet from: @"+data.user.screen_name);
-							process_tweet(data);
+							try {
+								process_tweet(data, function () { });
+							} catch (e)
+							{
+								throw e;
+							}
 							return;
 						}
 				        //console.log(util.inspect(data));
@@ -156,6 +161,7 @@ exports.controller = function(req, res, next) {
 					stream.on('error', function(error) {
 						console.log("stream.error");
 						console.log(error);
+						console.log(error.stack);
 						attr.connected = false;
 						streaming = false;
 						try {
