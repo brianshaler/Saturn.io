@@ -115,6 +115,7 @@ div.clear {
 	height: 48px;
 	margin: 0px 8px 4px 0px;
 	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
 	
 	-moz-box-shadow: 0.5px 1px 2px #888;
 	-webkit-box-shadow: 0.5px 1px 2px #888;
@@ -156,6 +157,7 @@ div.clear {
 	color: #FFFFFF;
 	font-size: 10px;
 	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
 }
 .add-topic form {
 	margin: 0px;
