@@ -14,7 +14,7 @@ Controller = function(req, res, next) {
 }
 
 var index = function(req, res, next) {
-	res.render('index', { title: 'Express' })
+	res.render('index', { title: 'Saturn' })
 }
 
 function addRoutes (app, controller, callback) {
@@ -28,10 +28,9 @@ function addRoutes (app, controller, callback) {
 exports.init = function(app, next) {
 	var fs = require('fs');
 	// get all js files in controllers subfolder
-	console.log("reading controllers: "+__dirname);
-	console.log("GET / -> "+(typeof index));
 	fs.readdir(__dirname, function(err, files) {
 		if (err) {
+			console.log("Error reading controllers directory");
 			console.log(err);
 			return next();
 		}

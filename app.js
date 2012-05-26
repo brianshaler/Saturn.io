@@ -113,7 +113,6 @@ conf.initConfig(function(err) {
 		require('./controllers/index.js').init(app, function () {
 			// Example 404 page via simple Connect middleware
 			//app.use(app.router);
-			console.log("express.static('"+__dirname + '/public'+"')");
 			app.use(express.static(__dirname + '/public'));
 			app.use(function(req, res){
 				res.render('404');
