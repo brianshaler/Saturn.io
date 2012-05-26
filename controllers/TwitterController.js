@@ -155,6 +155,7 @@ exports.controller = function(req, res, next) {
 				    });
 					stream.on('error', function(error) {
 						console.log("stream.error");
+						console.log(error);
 						attr.connected = false;
 						streaming = false;
 						try {
@@ -229,7 +230,7 @@ exports.controller = function(req, res, next) {
 					
 					if (!tweets || tweets.length == 0 || !tweets[0] || !tweets[0].hasOwnProperty("id_str")) {
 						//console.log("No tweets..");
-						return finished("No tweets?");
+						return finished();
 					}
 					
 					since_id = tweets[0].id_str;
