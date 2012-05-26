@@ -214,7 +214,7 @@ exports.controller = function(req, res, next) {
 			
 			Task.findOne({controller: "TwitterController", method: "timeline"}, function (err, task) {
 				if (err || !task) {
-					return finish("Couldn't find timeline task");
+					return finished("Couldn't find timeline task");
 				}
 				var attr = task.attributes || {};
 				var since_id = attr.since_id || -1;
@@ -243,8 +243,8 @@ exports.controller = function(req, res, next) {
 						var tweet = tweets.pop();
 						
 						if (tweet.retweeted_status && tweet.retweeted_status.text) {
-							tweet = tweet.retweeted_status;
-							return process_next_tweet();
+							//tweet = tweet.retweeted_status;
+							//return process_next_tweet();
 						}
 						
 						process_tweet(tweet, function (err) {
@@ -279,13 +279,15 @@ exports.controller = function(req, res, next) {
 
 
 function process_tweet (tweet, cb) {
-	//console.log("Processing tweet: "+tweet.text.substring(0, 50));
+	console.log("Processing tweet: "+tweet.text.substring(0, 50));
 	if (tweet.text.substring(0, 4) == "RT @") {
 		//console.log(tweet);
 	}
 	
 	if (tweet.retweeted_status && tweet.retweeted_status.text) {
 		tweet = tweet.retweeted_status;
+		// skip retweet:
+		cb();
 		return false;
 	}
 	
@@ -370,6 +372,7 @@ function process_tweet (tweet, cb) {
 							});
 						}
 						if (cb) {
+							console.log("Finished: "+tweet.text.substring(0, 50));
 							cb();
 						}
 					});

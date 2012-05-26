@@ -185,7 +185,7 @@ exports.controller = function(req, res, next) {
 					Topic.findOne({text: text}, function (err, topic) {
 						if (err) {
 							// err?
-							finished();
+							finished(err);
 						} else
 						if (topic) {
 							add_and_save(topic._id);
@@ -198,7 +198,7 @@ exports.controller = function(req, res, next) {
 						}
 					});
 				} else {
-					finished();
+					finished("Couldn't find the item");
 				}
 				
 				function add_and_save (_id) {
@@ -211,20 +211,21 @@ exports.controller = function(req, res, next) {
 					if (!found) {
 						item.topics.push(_id);
 					}
+					console.log("Saving "+item.topics.length+" topics onto item");
 					item.analyzed_at = new Date(Date.now() - 3600*1000);
 					item.save(function (err) {
-						finished();
+						finished(err);
 					});
 				}
 			});
 		} else {
-			finished();
+			finished("No topic to add?");
 		}
 		
-		function finished () {
+		function finished (err) {
 			switch (req.params.format) {
 				case 'json':
-					res.send({status: "success"});
+					res.send({status: "success",message:err});
 					break;
 				default:
 					res.redirect("/dashboard");

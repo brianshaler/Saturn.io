@@ -23,7 +23,7 @@ function merge(array, newItem) {
 } 
 
 var ActivityItemSchema = new Schema({
-	guid: {type: String, unique: true, index: true, required: true},
+	guid: {type: String, index: { unique: true }, required: true},
 	user: {type: ObjectId, index: true, ref: "Identity"}, 
 	message: {type: String},
 	posted_at: {type: Date},
