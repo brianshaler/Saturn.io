@@ -284,6 +284,23 @@ ActivityItemSchema.methods.analyze = function(cb) {
 				add_each_topic();
 			}
 			
+			function unique_ids (ids) {
+				var unique = [];
+
+				ids.forEach(function (id) {
+					var found = false;
+					unique.forEach(function (u) {
+						if (String(u) == String(id)) {
+							found = true;
+						}
+					});
+					if (!found) {
+						unique.push(id);
+					}
+				});
+				return unique;
+			}
+			
 			function done_adding() {
 				var topic_ids = [];
 				var topic_texts = [];
@@ -302,6 +319,7 @@ ActivityItemSchema.methods.analyze = function(cb) {
 					//console.log("ADDED TOPIC IDS! "+item.topics.length);
 					//console.log(self.message);
 					//console.log("Topics: "+topic_texts.join(", "));
+					item.topics = unique_ids(item.topics);
 					item.commit("topics");
 					item.save(function(err) {
 						t.forEach(function(topic) {
