@@ -25,7 +25,6 @@ conf.initConfig(function(err) {
 	
 	// Configuration
 	app.configure(function(){
-		app.use(express.favicon());
 		app.set('views', __dirname + '/views');
 		app.set('view engine', 'ejs');
 		app.use(express.cookieParser());
