@@ -48,8 +48,6 @@ ActivityItemSchema.methods.analyze = function(cb) {
 	var item = self;
 	var AI = this;
 	(function analyze_me(item, cb) {
-		console.log('Schema analyze_me');
-
 		var Topic = mongoose.model('Topic'),
 			JunkTopic = mongoose.model('JunkTopic'),
 			AI = mongoose.model('ActivityItem');
