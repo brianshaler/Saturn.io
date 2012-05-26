@@ -47,6 +47,7 @@ exports.controller = function(req, res, next) {
 				
 				function check_tasks () {
 					//return check_junk_topics();
+					console.log("check_tasks()");
 					Task.count({}, function (err, count) {
 						if (err) throw err;
 						
@@ -59,7 +60,7 @@ exports.controller = function(req, res, next) {
 							tasks.forEach(function (t) {
 								var task = new Task(t);
 								task.save(function (err) {
-									throw err;
+									if (err) throw err;
 								});
 							});
 							check_junk_topics();
@@ -70,6 +71,7 @@ exports.controller = function(req, res, next) {
 				}
 				
 				function check_junk_topics () {
+					console.log("check_junk_topics()");
 					JunkTopic.count({}, function (err, count) {
 						if (err) throw err;
 						
