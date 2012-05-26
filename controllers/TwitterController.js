@@ -76,6 +76,7 @@ exports.controller = function(req, res, next) {
 					if (err) {
 						return res.send("Twitter wasn't connected.. Error while saving to the database");
 					}
+					self.timeline(true);
 					return res.send("Twitter successfully connected. <a href=\"/admin/setup\">Continue setup?</a>");
 				});
 			} else {
@@ -90,13 +91,13 @@ exports.controller = function(req, res, next) {
 	
 	self.stream = function () {
 		
-		var stream_timeout = 8*1000;
-		var ping_frequency = 2*1000;
+		var stream_timeout = 4.5*1000;
+		var ping_frequency = 1*1000;
 		
 		
 		Settings.findOne({option: "twitter"}, function(err, tw) {
 			if (err) throw err;
-			if (!tw) return res.send("Couldn't find Twitter settings. Have you set it up yet?");
+			if (!tw || !tw.value.access_token_key || !tw.value.access_token_secret) return res.send("Couldn't find Twitter settings. Have you set it up yet?");
 			
 			var access_token_key = tw.value.access_token_key;
 			var access_token_secret = tw.value.access_token_secret;
@@ -108,8 +109,16 @@ exports.controller = function(req, res, next) {
 			
 				var attr = task.attributes || {};
 			
-				if (attr.connected && attr.last_ping.getTime() > Date.now() - stream_timeout) {
-					return res.send("Already streaming...");
+				if (attr.connected) {
+					if (attr.last_ping.getTime() < Date.now() - stream_timeout) {
+						attr.connected = false;
+						update_task(function () {
+							res.send("Already streaming, but timing out.");
+						});
+					} else {
+						res.send("Already streaming... "+(Date.now()-attr.last_ping.getTime())/1000);
+					}
+					return;
 				}
 			
 				console.log("OPENING NEW STREAM");
@@ -120,11 +129,11 @@ exports.controller = function(req, res, next) {
 				function update_task (cb) {
 					if (attr.connected) {
 						attr.last_ping = new Date();
-						Task.update({controller: "TwitterController", method: "stream"}, {attributes: attr}, {}, function () {
-							// err?
-						});
 						setTimeout(update_task, ping_frequency);
 					}
+					Task.update({controller: "TwitterController", method: "stream"}, {attributes: attr}, {}, function () {
+						// err?
+					});
 				}
 			
 				//console.log(me);
@@ -159,7 +168,6 @@ exports.controller = function(req, res, next) {
 					});
 					stream.on('end', function(err) {
 						console.log("stream.end");
-						console.log(err);
 						attr.connected = false;
 						streaming = false;
 						try {
@@ -193,37 +201,35 @@ exports.controller = function(req, res, next) {
 		});
 	}
 	
-	self.timeline = function () {
+	self.timeline = function (silent) {
 		//console.log("TwitterController.js::timeline()");
 		var twitter;
 		
 		Settings.findOne({option: "twitter"}, function(err, tw) {
-			if (err) throw err;
-			if (!tw) return res.send("Couldn't find Twitter settings. Have you set it up yet?");
+			if (err) return finished(err);
+			if (!tw) return finished("Couldn't find Twitter settings. Have you set it up yet?");
 			
 			var access_token_key = tw.value.access_token_key;
 			var access_token_secret = tw.value.access_token_secret;
 			
 			Task.findOne({controller: "TwitterController", method: "timeline"}, function (err, task) {
 				if (err || !task) {
-					return res.send("Couldn't find timeline task");
+					return finish("Couldn't find timeline task");
 				}
 				var attr = task.attributes || {};
-				var since_id = attr.since_id || 0;
-			
+				var since_id = attr.since_id || -1;
+				var params = {count: 100, include_entities: true};
+				if (attr.since_id) {
+					params.since_id = attr.since_id;
+				}
+				
 				twitter = get_twitter(tw.value, access_token_key, access_token_secret);
 				// Another instance of payload being same parameter as err.... shit.
-				twitter.getHomeTimeline({since_id: since_id, count: 100, include_entities: true}, function (tweets) {
-					
-					if (err) {
-						console.log("Error:");
-						console.log(err);
-					}
+				twitter.getHomeTimeline(params, function (tweets, dummy) {
 					
 					if (!tweets || tweets.length == 0 || !tweets[0] || !tweets[0].hasOwnProperty("id_str")) {
 						//console.log("No tweets..");
-						res.send("Done");
-						return;
+						return finished("No tweets?");
 					}
 					
 					since_id = tweets[0].id_str;
@@ -247,11 +253,6 @@ exports.controller = function(req, res, next) {
 						
 					}
 					
-					function finished () {
-						// Hmm...
-						res.send("Done");
-					}
-					
 					attr.since_id = since_id;
 					task.attributes = attr;
 					task.commit("attributes");
@@ -261,6 +262,17 @@ exports.controller = function(req, res, next) {
 				});
 			});
 		});
+		
+		function finished (err) {
+			// Hmm...
+			if (err) {
+				console.log("Error:");
+				console.log(err);
+			}
+			if (!silent) {
+				res.send("Done");
+			}
+		}
 	}
 }
 
