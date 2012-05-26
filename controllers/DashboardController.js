@@ -20,10 +20,9 @@ exports.controller = function(req, res, next) {
 		var activity_items = [];
 		var where = {analyzed_at: {"$gt": new Date(Date.now()-86400*1000)}};
 		if (req.query.since) {
-			where["created_at"] = {"$gt": new Date(parseInt(params.since)*1000)};
+			where["created_at"] = {"$gt": new Date(parseInt(req.query.since)*1000)};
 		}
 		
-		console.log("About to query");
 		var settings = {name: "dashboard", ratings: {"$exists": 1}, sort_by: "int_created_at desc", url: "/dashboard.json"};
 		ActivityItem.find(where)
 		.sort("created_at", -1)
@@ -32,7 +31,6 @@ exports.controller = function(req, res, next) {
 		.populate("characteristics")
 		.populate("topics")
 		.run(function (err, items) {
-			console.log("got result");
 			if (!err && items && items.length > 0) {
 				//activity_items = items;
 				items.forEach(function (item) {
@@ -49,9 +47,6 @@ exports.controller = function(req, res, next) {
 				default:
 					res.render("objects/stream", {activity_items: activity_items, stream: settings});
 			}
-			//console.log(res.send(activity_items));
-			console.log(activity_items.length);
-			console.log("SENT! "+req.params.format);
 		});
 	}
 	// end /dashboard/index
