@@ -18,7 +18,9 @@
 		</span>
 		<p class="activity-item-text"><%= parsed_message %></p>
 		<span class="activity-item-topics">
-			<% topics.forEach(function (topic) { if (topic.instances > 1 || topics.length <= 3) { %>
+			<% popular = [];
+			topics.forEach(function (topic) { if (topic.instances > 1) { popular.push(topic); } }); 
+			topics.forEach(function (topic) { if (topic.instances > 1 || popular.length <= 3) { %>
 				<a href="/topic/view/<%= topic._id %>"><%= topic.text %></a>
 			<% }}); %>
 			<a href="#" class="add-topic">
