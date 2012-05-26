@@ -17,7 +17,6 @@ exports.controller = function(req, res, next) {
 	self.index = function() {
 		if (!req.user.isUser) { return res.redirect('/admin/login'); }
 		
-		
 		var activity_items = [];
 		var where = {analyzed_at: {"$gt": new Date(Date.now()-86400*1000)}};
 		if (req.query.since) {
@@ -55,4 +54,26 @@ exports.controller = function(req, res, next) {
 			console.log("SENT! "+req.params.format);
 		});
 	}
+	// end /dashboard/index
+	
+	self.top = function () {
+		var activity_items = [];
+		
+		var settings = {name: "dashboard", sort_by: "rating desc", url: ""};
+		
+		ActivityItem.find({posted_at: {"$gt": new Date(Date.now()-86400*1000/6)}})
+		.sort("ratings.overall", -1)
+		.limit(50)
+		.populate("user")
+		.populate("characteristics")
+		.populate("topics")
+		.run(function (err, items) {
+			if (!err && items && items.length > 0) {
+				activity_items = items;
+			}
+			
+			res.render("object/stream", {activity_items: activity_items, stream: settings});
+		});
+	}
+	// end /dashboard/top
 };
