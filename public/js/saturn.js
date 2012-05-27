@@ -341,9 +341,9 @@ ActivityItem.prototype.set_time = function () {
 	} else
 	if (diff < 60*60*24*30) {
 		str = Math.round(diff/60/60/24)+"d";
-	} else
-	{
-		str = (Math.round(diff/60/60/24*10)/10)+"yrs";
+	} else {
+		var d = new Date(self.int_created_at*1000);
+		str = (d.getMonth()+1) + "/" + d.getDate() + (d.getFullYear() != (new Date()).getFullYear() ? "/" + d.getFullYear() : "");
 	}
 	time_div.html(str);
 }
