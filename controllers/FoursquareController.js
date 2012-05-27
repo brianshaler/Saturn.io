@@ -278,6 +278,17 @@ exports.controller = function(req, res, next) {
 				activity_item.guid = activity_item.platform + "-" + checkin.id;
 				activity_item.user = identity.id;
 				activity_item.message = message;
+				if (checkin.photos.count > 0) {
+					var image = {};
+					image.type = "photo";
+					image.sizes = [];
+					checkin.photos.items.forEach (function (photo) {
+						photo.sizes.items.forEach(function (size) {
+							image.sizes.push({url: size.url, width: size.width, height: size.height});
+						});
+					});
+					activity_item.media = [image];
+				}
 				activity_item.posted_at = new Date(Date.parse(checkin.createdAt));
 				activity_item.analyzed_at = new Date(0);
 				activity_item.topics = [];
