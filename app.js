@@ -4,6 +4,7 @@
 
 var express = require('express'),
 	fs = require('fs'),
+	querystring = require('querystring'),
 	mongoose = require('mongoose'),
 	conf = require('node-config'),
 	crypto = require('crypto'),
@@ -68,7 +69,14 @@ conf.initConfig(function(err) {
 		app.use(express.methodOverride());
 		// auth
 		app.use(function(req, res, next){
-			req.user = {isUser: false};
+			req.is_user = false;
+			req.require_authentication = function () {
+				if (req.is_user == true) {
+					return true;
+				}
+				res.redirect('/admin/login?'+querystring.stringify({redirect_url: req.url}));
+				return false;
+			}
 			if (req.session.session_key) {
 				Settings = mongoose.model('Settings');
 				Settings.findOne({option: "app"}, function (err, s) {
@@ -76,7 +84,7 @@ conf.initConfig(function(err) {
 						if (s.value.session_key && s.value.session_key == req.session.session_key) {
 							var correct_token = crypto.createHash('sha1').update(req.session.user_name+"|"+req.session.session_key).digest('hex');
 							if (req.session.session_token == correct_token) {
-								req.user.isUser = true;
+								req.is_user = true;
 							}
 						}
 					}

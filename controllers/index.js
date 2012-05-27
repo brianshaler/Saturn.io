@@ -14,7 +14,11 @@ Controller = function(req, res, next) {
 }
 
 var index = function(req, res, next) {
-	res.render('index', { title: 'Saturn' })
+	if (req.is_user) {
+		res.redirect('/dashboard');
+	} else {
+		res.render('index', { title: 'Saturn' });
+	}
 }
 
 function addRoutes (app, controller, callback) {

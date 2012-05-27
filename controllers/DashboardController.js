@@ -15,7 +15,7 @@ exports.controller = function(req, res, next) {
 	var self = this;
 	
 	self.index = function() {
-		if (!req.user.isUser) { return res.redirect('/admin/login'); }
+		if (!req.require_authentication("/dashboard")) { return; }
 		
 		var activity_items = [];
 		var where = {analyzed_at: {"$gt": new Date(Date.now()-86400*1000)}};
@@ -45,7 +45,11 @@ exports.controller = function(req, res, next) {
 					res.send(activity_items);
 					break;
 				default:
-					res.render("objects/stream", {activity_items: activity_items, stream: settings});
+					res.render("objects/stream", {
+						layout: "dashboard/dashboard-layout",
+						activity_items: activity_items, 
+						stream: settings
+					});
 			}
 		});
 	}
