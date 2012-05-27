@@ -71,7 +71,7 @@ exports.controller = function(req, res, next) {
 				activity_items = items;
 			}
 			
-			res.render("objects/stream", {activity_items: activity_items, stream: settings});
+			res.render("objects/stream", {layout: "dashboard/dashboard-layout", activity_items: activity_items, stream: settings});
 		});
 	}
 	// end /dashboard/top

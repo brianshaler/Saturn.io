@@ -11,29 +11,6 @@ var mongoose = require('mongoose'),
 exports.controller = function(req, res, next) {
 	Controller.call(this, req, res, next);
 	var self = this;
-
-	self.index = function() {
-		var activity_items = [];
-		
-		var recent_topics = [];
-		var popular_topics = [];
-		
-		var from = req.params.from ? parseInt(req.params.from) - 1 : 0;
-		var to = req.params.to ? parseInt(req.params.to) : 10;
-		
-		Topic.find()
-		.sort("text", -1)
-		.skip(from).limit(to)
-		.limit(20)
-		.run(function (err, topics) {
-			if (!err && topics && topics.length > 0) {
-				recent_topics = topics;
-			}
-			
-			res.render(ViewTemplatePath + "/index", {recent_topics: recent_topics});
-		});
-	}
-	// end /topic/index
 	
 	self.analyze_trending = function () {
 		var trending_topics = [];
@@ -153,7 +130,7 @@ exports.controller = function(req, res, next) {
 					res.send(trending_topics);
 					break;
 				default:
-					res.render(ViewTemplatePath + "/list", {topics: trending_topics});
+					res.render(ViewTemplatePath + "/list", {layout: "dashboard/dashboard-layout", topics: trending_topics});
 			}
 			//res.send(trending_topics);
 		}
@@ -180,7 +157,7 @@ exports.controller = function(req, res, next) {
 				topics = [];
 			}
 			
-			res.render(ViewTemplatePath + "/list", {topics: topics});
+			res.render(ViewTemplatePath + "/list", {layout: "dashboard/dashboard-layout", topics: topics});
 		});
 	}
 	// end /topic/popular
@@ -201,7 +178,7 @@ exports.controller = function(req, res, next) {
 					if (err || !items) {
 						items = [];
 					}
-					res.render(ViewTemplatePath + "/view", {topic: topic, items: items});
+					res.render(ViewTemplatePath + "/view", {layout: "dashboard/dashboard-layout", topic: topic, items: items});
 				});
 			} else {
 				res.redirect("/dashboard");
@@ -218,7 +195,7 @@ exports.controller = function(req, res, next) {
 				return next(err);
 			}
 			if (!topic) {
-				return res.render("404");
+				return res.render("404", {layout: "dashboard/dashboard-layout"});
 			}
 			res.redirect("/topic/view/"+topic.id);
 		});

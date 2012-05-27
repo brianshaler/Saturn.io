@@ -13,23 +13,6 @@ exports.controller = function(req, res, next) {
 	Controller.call(this, req, res, next);
 	var self = this;
 
-	self.index = function() {
-		var activity_items = [];
-		
-		ActivityItem.find()
-		.sort("created_at", -1)
-		.limit(20)
-		.populate("user")
-		.run(function (err, items) {
-			if (!err && items && items.length > 0) {
-				activity_items = items;
-			}
-			
-			res.render(ViewTemplatePath + "/index", {activity_items: activity_items});
-		});
-	}
-	// end /item/index
-	
 	self.view = function () {
 		var id = req.params.id;
 		
@@ -39,7 +22,7 @@ exports.controller = function(req, res, next) {
 		.populate("characteristics")
 		.run(function (err, item) {
 			if (!err && item) {
-				res.render(ViewTemplatePath + "/activity_item", {item: item});
+				res.render("objects/activity_item", {layout: "dashboard/dashboard-layout", item: item});
 			} else {
 				res.redirect("/dashboard");
 			}
