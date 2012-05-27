@@ -146,9 +146,6 @@ exports.controller = function(req, res, next) {
 						return res.redirect('/admin');
 					}
 				}
-			} else
-			if (step == 1 && req.user.isUser) {
-
 			} else {
 				req.flash("Setup Complete!");
 				res.redirect("/admin");
