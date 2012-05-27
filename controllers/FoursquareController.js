@@ -19,6 +19,10 @@ exports.controller = function(req, res, next) {
 	
 	self.platform = "foursquare";
 	
+	self.tasks = [
+		{controller: "FoursquareController", method: "timeline", interval: 120}
+	];
+	
 	self.setup = function () {
 		if (!req.require_authentication()) { return; }
 		
@@ -34,52 +38,84 @@ exports.controller = function(req, res, next) {
 			step = steps[0];
 		}
 		
-		self._get_settings(function (err, fsq) {
-			if (err) throw err;
-			
-			if (step == "connect") { // Step 2: /foursquare/setup/connect
-				var is_setup = false;
-				if (fsq && fsq.value && fsq.value.access_token) {
-					is_setup = true;
-				}
-				// Show the page for this step
-				return self.render('admin/setup/foursquare/connect', {
-					layout: "admin/admin-layout",
-					locals: {
-						title: 'Connect to Foursquare',
-						settings: {},
-						is_setup: is_setup,
-						current_step: step
-					}
-				});
-			} else { // Default is Step 1: /foursquare/setup/app
-				if (req.body && req.body.settings && req.body.settings.foursquare) {
-					// Process form
-					if (!fsq.value) {
-						fsq.value = {};
-					}
-					for (var k in req.body.settings.foursquare) {
-						fsq.value[k] = req.body.settings.foursquare[k];
-					}
-					fsq.commit('value');
-					fsq.save(function (err) {
-						if (err) throw err;
-						
-						// Done with this step. Continue!
-						res.redirect("/foursquare/setup/connect");
-					});
-					return;
-				} else {
-					// Show the page for this step
-					return self.render('admin/setup/foursquare/app', {
-						layout: "admin/admin-layout",
-						locals: {
-							title: 'Foursquare',
-							settings: fsq.value
+		function check_tasks (cb) {
+			if (self.tasks.length == 0) {
+				cb(); return;
+			}
+			var ors = [];
+			self.tasks.forEach(function (task) {
+				ors.push({controller: task.controller, method: task.method});
+			});
+			var where = {"$or": ors};
+			Task.find(where, function (err, existing) {
+				if (err) throw err;
+				
+				self.tasks.forEach(function (t) {
+					var found = false;
+					existing.forEach(function (et) {
+						if (t.controller == et.controller && t.method == et.method) {
+							found = true;
 						}
 					});
+					if (!found) {
+						var task = new Task(t);
+						task.save(function (err) {
+							if (err) throw err;
+						});
+					}
+				});
+				cb();
+			});
+		}
+		
+		check_tasks(function () {
+			self._get_settings(function (err, fsq) {
+				if (err) throw err;
+			
+				if (step == "connect") { // Step 2: /foursquare/setup/connect
+					var is_setup = false;
+					if (fsq && fsq.value && fsq.value.access_token) {
+						is_setup = true;
+					}
+					// Show the page for this step
+					return self.render('admin/setup/foursquare/connect', {
+						layout: "admin/admin-layout",
+						locals: {
+							title: 'Connect to Foursquare',
+							settings: {},
+							is_setup: is_setup,
+							current_step: step
+						}
+					});
+				} else { // Default is Step 1: /foursquare/setup/app
+					if (req.body && req.body.settings && req.body.settings.foursquare) {
+						// Process form
+						if (!fsq.value) {
+							fsq.value = {};
+						}
+						for (var k in req.body.settings.foursquare) {
+							fsq.value[k] = req.body.settings.foursquare[k];
+						}
+						fsq.commit('value');
+						fsq.save(function (err) {
+							if (err) throw err;
+						
+							// Done with this step. Continue!
+							res.redirect("/foursquare/setup/connect");
+						});
+						return;
+					} else {
+						// Show the page for this step
+						return self.render('admin/setup/foursquare/app', {
+							layout: "admin/admin-layout",
+							locals: {
+								title: 'Foursquare',
+								settings: fsq.value
+							}
+						});
+					}
 				}
-			}
+			});
 		});
 	}
 	

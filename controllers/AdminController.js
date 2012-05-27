@@ -54,6 +54,7 @@ exports.controller = function(req, res, next) {
 							var tasks = [
 								{controller: "TwitterController", method: "timeline", interval: 60},
 								{controller: "TwitterController", method: "stream", interval: 10, attributes: {connected: false}},
+								{controller: "FoursquareController", method: "timeline", interval: 120},
 								{controller: "AnalysisController", method: "analyze", interval: 8}
 							];
 							tasks.forEach(function (t) {
