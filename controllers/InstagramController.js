@@ -306,6 +306,14 @@ exports.controller = function(req, res, next) {
 				activity_item.guid = activity_item.platform + "-" + post.id;
 				activity_item.user = identity.id;
 				activity_item.message = message;
+				var image = {};
+				var keys = ["standard_resolution", "thumbnail", "low_resolution"];
+				image.type = "photo";
+				image.sizes = [];
+				keys.forEach (function (size) {
+					image.sizes.push({url: post.images[size].url, width: post.images[size].width, height: post.images[size].height});
+				});
+				activity_item.media = [image];
 				activity_item.posted_at = new Date(parseInt(post.created_time)*1000);
 				activity_item.analyzed_at = new Date(0);
 				activity_item.topics = [];
