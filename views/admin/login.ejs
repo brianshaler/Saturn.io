@@ -1,9 +1,11 @@
 <%
 if (!user_name) { user_name = ""; } 
+if (!hasOwnProperty("redirect_url")) { redirect_url = ""; }
 %>
 <h1>Login</h1>
 <p>
 	<form method="post" action="/admin/login">
+		<input type="hidden" name="redirect_url" value="<%= redirect_url %>" />
 		<table>
 			<tr>
 				<td>
