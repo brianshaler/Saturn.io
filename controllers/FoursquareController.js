@@ -150,7 +150,7 @@ exports.controller = function(req, res, next) {
 				var afterTimestamp = attr.afterTimestamp || -1;
 				var params = {limit: 100};
 				if (attr.afterTimestamp) {
-					params.afterTimestamp = attr.afterTimestamp - 86400;
+					params.afterTimestamp = attr.afterTimestamp;
 				}
 				
 				foursquare = get_foursquare(fsq.value);
