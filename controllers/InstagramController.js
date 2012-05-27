@@ -195,7 +195,7 @@ exports.controller = function(req, res, next) {
 		
 		Settings.findOne({option: self.platform}, function(err, ig) {
 			if (err) return finished(err);
-			if (!ig || !ig.value.access_token) return finished("Couldn't find Instagram settings. Have you set it up yet?");
+			if (!ig || !ig.value.access_token) return finished(); // "Couldn't find Instagram settings. Have you set it up yet?"
 			
 			var access_token = ig.value.access_token;
 			

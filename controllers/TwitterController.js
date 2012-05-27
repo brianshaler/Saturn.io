@@ -319,7 +319,7 @@ exports.controller = function(req, res, next) {
 		
 		Settings.findOne({option: self.platform}, function(err, tw) {
 			if (err) return finished(err);
-			if (!tw) return finished("Couldn't find Twitter settings. Have you set it up yet?");
+			if (!tw) return finished(); // "Couldn't find Twitter settings. Have you set it up yet?"
 			
 			var access_token_key = tw.value.access_token_key;
 			var access_token_secret = tw.value.access_token_secret;
