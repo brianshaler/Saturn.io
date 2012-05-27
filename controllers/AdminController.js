@@ -17,9 +17,9 @@ exports.controller = function(req, res, next) {
 	var self = this;
 	
 	self.index = function() {
-		if (!req.user.isUser) { return res.redirect('/admin/login'); }
+		if (!req.require_authentication("/admin")) { return; }
 		
-		return self.render('admin/index');
+		return self.render('admin/index', {layout: "admin/admin-layout"});
 	}
 	
 	self.setup = function() {
@@ -117,7 +117,7 @@ exports.controller = function(req, res, next) {
 				}
 				
 				function begin_setup () {
-					if (!app_settings.value || !app_settings.value.user_name || 1==1) {
+					if (!app_settings.value || !app_settings.value.user_name) {
 						if (req.body && req.body.settings && req.body.settings.user_name && req.body.settings.password) {
 							var user_name = req.body.settings.user_name;
 							var hashed_password = self._hash(req.body.settings.password);
@@ -134,6 +134,7 @@ exports.controller = function(req, res, next) {
 							self._next_step(app_settings, step);
 						} else {
 							return self.render('admin/setup/account', {
+								layout: "admin/admin-layout",
 								locals: {
 									title: 'SET USER NAME',
 									settings: app_settings.value
@@ -141,59 +142,12 @@ exports.controller = function(req, res, next) {
 							});
 						}
 					} else {
-						self._next_step(app_settings, step);
+						return res.redirect('/admin');
 					}
 				}
 			} else
 			if (step == 1 && req.user.isUser) {
-				self._get_settings("twitter", function (err, tw) {
-					if (err) throw err;
 
-					if (req.body && req.body.settings && req.body.settings.twitter) {
-						// Process form
-						if (!tw.value) {
-							tw.value = {};
-						}
-						for (var k in req.body.settings.twitter) {
-							tw.value[k] = req.body.settings.twitter[k];
-						}
-						tw.commit('value');
-						tw.save(function (err) {
-							if (err) throw err;
-							
-							// Done with this step. Continue!
-							self._next_step(app_settings, step);
-						});
-						return;
-					} else {
-						// Show the page for this step
-						return self.render('admin/setup/twitter_app', {
-							locals: {
-								title: 'Express TEST',
-								settings: tw.value
-							}
-						});
-					}
-				});
-			} else
-			if (step == 2 && req.user.isUser) {
-				self._get_settings("twitter", function (err, tw) {
-					if (err) throw err;
-					
-					var is_setup = false;
-					if (tw && tw.value && tw.value.access_token_key && tw.value.access_token_secret) {
-						is_setup = true;
-					}
-					// Show the page for this step
-					return self.render('admin/setup/connect', {
-						locals: {
-							title: 'Connect to Twitter',
-							settings: {},
-							is_setup: is_setup,
-							current_step: step
-						}
-					});
-				});
 			} else {
 				req.flash("Setup Complete!");
 				res.redirect("/admin");
@@ -218,7 +172,11 @@ exports.controller = function(req, res, next) {
 					if (req.body.user_name === user_name && self._hash(req.body.password) === password) {
 						// Good to go!
 						
-						redirect_url = "/";
+						if (req.body.redirect_url && String(req.body.redirect_url).length > 0) {
+							redirect_url = req.body.redirect_url;
+						} else {
+							redirect_url = "/";
+						}
 						
 						if (!session_key || session_key == "") {
 							session_key = self._generate_session_key(user_name, password);
@@ -242,11 +200,13 @@ exports.controller = function(req, res, next) {
 		
 		function finish () {
 			if (redirect_url == "") {
+				if (req.query && String(req.query.redirect_url).length > 0) {
+					redirect_url = req.query.redirect_url;
+				}
 				self.render('admin/login', {
-					locals: {
-						title: 'Login',
-						user_name: req.body.user_name || ""
-					}
+					title: 'Login',
+					user_name: req.body.user_name || "",
+					redirect_url: redirect_url
 				});
 			} else {
 				res.redirect(redirect_url);
