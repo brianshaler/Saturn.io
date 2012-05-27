@@ -349,10 +349,13 @@ exports.controller = function(req, res, next) {
 
 function get_foursquare (settings) {
 	var config = {
-		"secrets" : {
-			"clientId" : settings.client_id,
-			"clientSecret" : settings.client_secret,
-			"redirectUrl" : settings.callback_url
+		secrets: {
+			clientId: settings.client_id,
+			clientSecret: settings.client_secret,
+			redirectUrl: settings.callback_url
+		},
+		foursquare: {
+			version: "20120527"
 		}
 	}
 	return foursquare_api(config);
