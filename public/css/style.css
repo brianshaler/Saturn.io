@@ -220,7 +220,7 @@ div.clear {
 	word-wrap: no-wrap;
 	text-overflow: ellipsis;
 }
-.activity-item-collapsed .activity-item-topics {
+.activity-item-collapsed .activity-item-topics, .activity-item-collapsed .activity-item-media {
 	display: none;
 }
 .activity-item-collapsed .activity-item-control {
