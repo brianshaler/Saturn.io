@@ -1,0 +1,5 @@
+<ul class="nav-tabs">
+<% tabs.forEach(function (tab) { %>
+	<li<%= (tab.selected == true ? " class='active'" : "") %>><a href="<%= tab.url %>"><%= tab.text %></a></li>
+<% }); %>
+</ul>

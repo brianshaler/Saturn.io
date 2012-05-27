@@ -1,0 +1,13 @@
+<%- partial('admin/tabs', {tabs: [{
+		text: "Twitter App",
+		url: "/twitter/setup/app"
+	}, {
+		text: "Connect Account",
+		url: "/twitter/setup/connect",
+		selected: true
+	}]}) %>
+<p>We'll now authenticate your user account to the app...</p>
+<p><a href="/twitter/oauth">Click here to authenticate</a></p>
+<% if (is_setup) { %>
+<p><strong>Your account has been connected!</strong></p>
+<% } %>

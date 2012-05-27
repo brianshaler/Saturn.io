@@ -1,0 +1,13 @@
+<%- partial('admin/tabs', {tabs: [{
+		text: "Foursquare App",
+		url: "/foursquare/setup/app"
+	}, {
+		text: "Connect Account",
+		url: "/foursquare/setup/connect",
+		selected: true
+	}]}) %>
+<p>We'll now authenticate your user account to the app...</p>
+<p><a href="/foursquare/oauth">Click here to authenticate</a></p>
+<% if (is_setup) { %>
+<p><strong>Your account has been connected!</strong></p>
+<% } %>

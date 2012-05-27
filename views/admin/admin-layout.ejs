@@ -1,0 +1,42 @@
+<!DOCTYPE html> 
+<html>
+	<head>
+		<title>saturn.io admin</title>
+		<link rel="shortcut icon" type="image/x-icon" href="/images/saturn/favicon.ico">
+		<link rel="stylesheet" href="/css/style.css" />
+		<link rel="stylesheet" type="text/css" media="all" href="/css/960/reset.css" />
+		<link rel="stylesheet" type="text/css" media="all" href="/css/960/text.css" />
+		<link rel="stylesheet" type="text/css" media="all" href="/css/960/960.css" />
+		<link rel="stylesheet" href="/css/font-awesome.css" />
+		<script type="text/javascript" src="/js/jquery-1.7.1.min.js"></script>
+		<script type="text/javascript" src="/js/ejs_production.js"></script>
+		<script type="text/javascript" src="/js/keymaster.min.js"></script>
+		<script type="text/javascript" src="/js/saturn.js"></script>
+	</head>
+	<body>
+		<header>
+			<a style="float: right; margin-right: 40px;" class="brand" href="/"><img src="/images/saturn/logo_t.png" /></a>
+		</header>
+		
+		<div class="container_12">
+			
+			<div class="grid_3">
+				<ul class="nav nav-list">
+					<li style="margin-left: 15px; text-align: center;"><a href="/dashboard">&laquo; Return to Dashboard</a></li>
+					<li class="nav-header">Saturn Settings</li>
+					<li><a href="/admin">Admin</a></li>
+					<li class="nav-header">Connections</li>
+					<li><a href="/twitter/setup">Twitter</a></li>
+					<li><a href="/foursquare/setup">Foursquare</a></li>
+				</ul>
+			</div>
+			
+			<div class="grid_9 admin-content">
+				<%- flash_message() %>
+				<%- body %>
+			</div>
+		</div>
+		
+		<footer style="padding: 15px; text-align: center;">saturn.io</footer>
+	</body>
+</html>

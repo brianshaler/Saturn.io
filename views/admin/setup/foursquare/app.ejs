@@ -1,0 +1,62 @@
+<%
+if (!settings) { settings = {}; } 
+if (!settings.client_id) { settings.client_id = ""; } 
+if (!settings.client_secret) { settings.client_secret = ""; } 
+if (!settings.callback_url) { settings.callback_url = ""; } 
+%>
+<%- partial('admin/tabs', {tabs: [{
+		text: "Foursquare App",
+		url: "/foursquare/setup/app",
+		selected: true
+	}, {
+		text: "Connect Account",
+		url: "/foursquare/setup/connect"
+	}]}) %>
+<h1>Foursquare Configuration</h1>
+<p>
+	Copy the details from your Foursquare App, which you can find or create at <a href="https://foursquare.com/oauth/" target="_blank">https://foursquare.com/oauth/</a>
+</p>
+<p>
+	<form method="post" action="/foursquare/setup/app">
+		<table>
+			<tr>
+				<td>
+					<strong>Client ID:</strong> 
+				</td>
+				<td>
+					<input name="settings[foursquare][client_id]" value="<%= settings.client_id %>" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong>Client Secret:</strong> 
+				</td>
+				<td>
+					<input name="settings[foursquare][client_secret]" value="<%= settings.client_secret %>" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong>Callback URL:</strong> 
+				</td>
+				<td>
+					<input name="settings[foursquare][callback_url]" value="<%= settings.callback_url %>" />
+				</td>
+			</tr>
+			<tr>
+				<td>&nbsp;</td>
+				<td>
+					<input type="submit" value="Save &amp; Next" />
+				</td>
+			</tr>
+		</table>
+	</form>
+</p>
+<p>
+	You may consider using these keys, but if you do, your app MUST be accessible at the same callback URL.
+<pre>
+client_id: HXUHCFXFVCM0PUJ4WGFBKAHIJO4VPONIKBT0Y1EW5HNOU5ZY
+client_secret: 4O2Z4VMT5Q4MNELIKL11INSXUGEKDTOWNABD0X5CDTCFGE0C
+callback_url: http://local.saturn.io:3000/foursquare/auth
+</pre>
+</p>
