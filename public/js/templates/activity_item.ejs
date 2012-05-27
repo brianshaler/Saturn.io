@@ -17,6 +17,31 @@
 			<a href="/identity/view/<%= user._id %>"><%= user.display_name %></a>
 		</span>
 		<p class="activity-item-text"><%= parsed_message %></p>
+		<% if (media && media.length > 0) { 
+			var image = "";
+			var image_width = 1;
+			var image_height = 1;
+			var max_width = 400;
+			var max_height = 340;
+			media.forEach(function (item) {
+				if (image == "" && item.type == "photo") {
+					var best_fit = item.sizes[0];
+					
+					item.sizes.forEach(function (size) {
+						if (size.width < max_width && size.height < max_height) {
+							if (size.width < best_fit.width && size.height < best_fit.height) {
+								best_fit = size;
+							}
+						}
+					});
+					image = best_fit.url;
+					image_width = best_fit.width;
+					image_height = best_fit.height;
+				}
+			});
+			%>
+		<div class="activity-item-media"><img src="<%= image %>" width="<%= image_width %>" height="<%= image_height %>" /></div>
+		<% } %>
 		<span class="activity-item-topics">
 			<% popular = [];
 			topics.forEach(function (topic) { if (topic.instances > 1) { popular.push(topic); } }); 
