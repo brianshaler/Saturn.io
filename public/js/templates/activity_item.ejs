@@ -29,7 +29,7 @@
 					
 					item.sizes.forEach(function (size) {
 						if (size.width < max_width && size.height < max_height) {
-							if (size.width < best_fit.width && size.height < best_fit.height) {
+							if ((size.width > best_fit.width && size.height > best_fit.height) || best_fit.width > max_width || best_fit.height > max_height) {
 								best_fit = size;
 							}
 						}
