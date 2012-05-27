@@ -1,0 +1,62 @@
+<%
+if (!settings) { settings = {}; } 
+if (!settings.client_id) { settings.client_id = ""; } 
+if (!settings.client_secret) { settings.client_secret = ""; } 
+if (!settings.callback_url) { settings.callback_url = ""; } 
+%>
+<%- partial('admin/tabs', {tabs: [{
+		text: "Instagram App",
+		url: "/instagram/setup/app",
+		selected: true
+	}, {
+		text: "Connect Account",
+		url: "/instagram/setup/connect"
+	}]}) %>
+<h1>Instagram Configuration</h1>
+<p>
+	Copy the details from your Instagram App, which you can find or create at <a href="https://instagr.am/developer/clients/manage/" target="_blank">https://instagr.am/developer/clients/manage/</a>
+</p>
+<p>
+	<form method="post" action="/instagram/setup/app">
+		<table>
+			<tr>
+				<td>
+					<strong>Client ID:</strong> 
+				</td>
+				<td>
+					<input name="settings[instagram][client_id]" value="<%= settings.client_id %>" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong>Client Secret:</strong> 
+				</td>
+				<td>
+					<input name="settings[instagram][client_secret]" value="<%= settings.client_secret %>" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong>Callback URL:</strong> 
+				</td>
+				<td>
+					<input name="settings[instagram][callback_url]" value="<%= settings.callback_url %>" />
+				</td>
+			</tr>
+			<tr>
+				<td>&nbsp;</td>
+				<td>
+					<input type="submit" value="Save &amp; Next" />
+				</td>
+			</tr>
+		</table>
+	</form>
+</p>
+<p>
+	You may consider using these keys, but if you do, your app MUST be accessible at the same callback URL.
+<pre>
+client_id: 7c990df723374bee988ed26be036cdaa
+client_secret: 83206767771e4d34bf18501ecf543c58
+callback_url: http://local.saturn.io:3000/instagram/auth/
+</pre>
+</p>
