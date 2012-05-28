@@ -13,11 +13,26 @@ Controller = function(req, res, next) {
 	}
 }
 
+var mongoose = require('mongoose');
 var index = function(req, res, next) {
+	var Settings = mongoose.model('Settings');
 	if (req.is_user) {
 		res.redirect('/dashboard');
 	} else {
-		res.render('index', { title: 'Saturn' });
+		var not_setup = false;
+		
+		Settings.findOne({option: "app"}, function(err, s) {
+			if (err) throw err;
+			
+			if (!s || !(s.value.setup_step > 0)) {
+				not_setup = true;
+			}
+			if (not_setup == true) {
+				res.redirect('/admin/setup');
+			} else {
+				res.render('landing-page', { layout: false });
+			}
+		});
 	}
 }
 
