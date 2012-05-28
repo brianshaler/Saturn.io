@@ -135,7 +135,6 @@ exports.controller = function(req, res, next) {
 							self._next_step(app_settings, step);
 						} else {
 							return self.render('admin/setup/account', {
-								layout: "admin/admin-layout",
 								locals: {
 									title: 'SET USER NAME',
 									settings: app_settings.value
