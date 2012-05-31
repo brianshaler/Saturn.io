@@ -102,7 +102,7 @@ exports.controller = function(req, res, next) {
 							if (err) throw err;
 						
 							// Done with this step. Continue!
-							self._next_step(app_settings, step);
+							res.redirect("/twitter/setup/connect");
 						});
 						return;
 					} else {
