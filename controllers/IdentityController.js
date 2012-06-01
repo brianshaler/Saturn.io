@@ -16,6 +16,7 @@ exports.controller = function(req, res, next) {
 
 	self.view = function() {
 		var display = {
+			layout: "dashboard/dashboard-layout",
 			identity: false,
 			items: false
 		};
