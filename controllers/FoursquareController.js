@@ -291,7 +291,6 @@ exports.controller = function(req, res, next) {
 					activity_item.platform = self.platform;
 					activity_item.guid = activity_item.platform + "-" + checkin.id;
 					activity_item.user = identity.id;
-					activity_item.message = message;
 					if (checkin.photos.count > 0) {
 						var image = {};
 						image.type = "photo";
@@ -309,6 +308,7 @@ exports.controller = function(req, res, next) {
 					var chars = [];
 					
 					if (new_item) {
+						activity_item.message = message;
 						activity_item.analyzed_at = new Date(0);
 						activity_item.topics = [];
 						activity_item.characteristics = [];
@@ -323,6 +323,12 @@ exports.controller = function(req, res, next) {
 						checkin.venue.categories.forEach(function (category) {
 							chars.push("Venue category: "+category.name);
 						});
+						
+						activity_item.unshorten_urls(function (err) {
+							add_characteristic();
+						});
+					} else {
+						add_characteristic();
 					}
 					
 					function add_characteristic () {
@@ -343,7 +349,6 @@ exports.controller = function(req, res, next) {
 							}
 						});
 					}
-					add_characteristic();
 
 					function save_activity_item () {
 						activity_item.save(function (err) {

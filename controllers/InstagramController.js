@@ -319,7 +319,6 @@ exports.controller = function(req, res, next) {
 					activity_item.platform = self.platform;
 					activity_item.guid = activity_item.platform + "-" + post.id;
 					activity_item.user = identity.id;
-					activity_item.message = message;
 					var image = {};
 					var keys = ["standard_resolution", "thumbnail", "low_resolution"];
 					image.type = "photo";
@@ -334,10 +333,17 @@ exports.controller = function(req, res, next) {
 					var chars = [];
 					
 					if (new_item) {
+						activity_item.message = message;
 						activity_item.analyzed_at = new Date(0);
 						activity_item.topics = [];
 						activity_item.characteristics = [];
 						activity_item.attributes = {};
+						
+						activity_item.unshorten_urls(function (err) {
+							add_characteristic();
+						});
+					} else {
+						add_characteristic();
 					}
 					
 					function add_characteristic () {
@@ -358,7 +364,6 @@ exports.controller = function(req, res, next) {
 							}
 						});
 					}
-					add_characteristic();
 					
 					function save_activity_item () {
 						activity_item.save(function (err) {

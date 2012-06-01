@@ -414,7 +414,7 @@ ActivityItemSchema.methods.analyze = function(cb) {
 }
 
 
-ActivityItemSchema.pre('save', function(next) {
+ActivityItemSchema.methods.unshorten_urls = function(cb) {
 	var self = this;
 	
 	if (!this.ratings) {
@@ -432,10 +432,10 @@ ActivityItemSchema.pre('save', function(next) {
 			unshorten_urls(m, function(m) {
 				//console.log("New message (2): "+m);
 				self.message = m;
-				next();
+				cb();
 			});
 		} else {
-			next();
+			cb();
 		}
 	});
 	
@@ -476,17 +476,13 @@ function unshorten_urls(_message, cb) {
 				return finished();
 			}
 			var match = matches.pop();
-			if (match.length > 28) {
+			unshorten(match, function(url) {
+				if (match != url) {
+					match = match.replace(/ /g, "%20");
+					_message = _message.replace(match, url);
+				}
 				unshorten_next();
-			} else {
-				unshorten(match, function(url) {
-					if (match != url) {
-						match = match.replace(/ /g, "%20");
-						_message = _message.replace(match, url);
-					}
-					unshorten_next();
-				});
-			}
+			});
 		}
 		unshorten_next();
 		function finished() {

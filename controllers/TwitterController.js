@@ -272,7 +272,7 @@ exports.controller = function(req, res, next) {
 						try {
 							stream.destroy();
 						} catch (e) {
-							
+						
 						}
 						update_task(function (err) {
 							res.send(error);
@@ -285,7 +285,7 @@ exports.controller = function(req, res, next) {
 						try {
 							stream.destroy();
 						} catch (e) {
-							
+						
 						}
 						update_task(function (err) {
 							console.log("Stream terminating");
@@ -299,7 +299,7 @@ exports.controller = function(req, res, next) {
 						try {
 							stream.destroy();
 						} catch (e) {
-							
+						
 						}
 						update_task(function (err) {
 							console.log("Stream terminating");
@@ -440,13 +440,13 @@ exports.controller = function(req, res, next) {
 					activity_item.platform = self.platform;
 					activity_item.guid = activity_item.platform + "-" + tweet.id_str;
 					activity_item.user = id.id;
-					activity_item.message = tweet.text;
 					activity_item.posted_at = new Date(Date.parse(tweet.created_at));
 					activity_item.data = tweet;
 					
 					var chars = [];
 					
 					if (new_item) {
+						activity_item.message = tweet.text;
 						activity_item.analyzed_at = new Date(0);
 						activity_item.topics = [];
 						activity_item.characteristics = [];
@@ -464,6 +464,12 @@ exports.controller = function(req, res, next) {
 						if (tweet.text.match(/(^|\s)@[-A-Za-z0-9_]+(\s|$)/gi)) {
 							chars.push("is mention");
 						}
+						
+						activity_item.unshorten_urls(function (err) {
+							add_characteristic();
+						});
+					} else {
+						add_characteristic();
 					}
 					
 					function add_characteristic () {
@@ -484,7 +490,6 @@ exports.controller = function(req, res, next) {
 							}
 						});
 					}
-					add_characteristic();
 					
 					function save_activity_item () {
 						activity_item.save(function (err) {
