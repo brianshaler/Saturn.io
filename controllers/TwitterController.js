@@ -392,103 +392,120 @@ exports.controller = function(req, res, next) {
 		if (tweet.text.substring(0, 4) == "RT @") {
 			//console.log(tweet);
 		}
-
+		
 		if (tweet.retweeted_status && tweet.retweeted_status.text) {
 			tweet = tweet.retweeted_status;
 			// skip retweet:
 			cb();
 			return false;
 		}
-
+		
 		var identity;
-		var activity_item = new ActivityItem();
-		Identity.findOne({platform: self.platform, platform_id: tweet.user.id_str}, function (err, id) {
-			if (err || !id) {
-				id = new Identity();
-				id.photo = [];
+		var new_item = false;
+		var activity_item;// = new ActivityItem();
+		
+		ActivityItem.findOne({guid: self.platform+"-"+tweet.id_str}, function (err, item) {
+			if (err) throw err;
+			
+			if (item) {
+				// it exists, let's just update it
+				activity_item = item;
+			} else {
+				// doesn't exist, create a blank one
+				activity_item = new ActivityItem();
+				new_item = true;
 			}
-			id.platform = self.platform;
-			id.platform_id = tweet.user.id_str;
-			id.user_name = tweet.user.screen_name;
-			id.display_name = tweet.user.name + " (@"+ tweet.user.screen_name + ")";
-			id.guid = id.platform + "-" + id.platform_id;
-			var photo_found = false;
-			id.photo.forEach(function (photo) {
-				if (photo.url == tweet.user.profile_image_url_https) {
-					photo_found = true;
+			
+			Identity.findOne({platform: self.platform, platform_id: tweet.user.id_str}, function (err, id) {
+				if (err || !id) {
+					id = new Identity();
+					id.photo = [];
 				}
-			});
-			if (!photo_found) {
-				id.photo.push({url: tweet.user.profile_image_url_https});
-			}
-			id.updated_at = new Date();
-			id.save(function (err) {
-				activity_item.platform = self.platform;
-				activity_item.guid = activity_item.platform + "-" + tweet.id_str;
-				activity_item.user = id.id;
-				activity_item.message = tweet.text;
-				activity_item.posted_at = new Date(Date.parse(tweet.created_at));
-				activity_item.analyzed_at = new Date(0);
-				activity_item.topics = [];
-				activity_item.characteristics = [];
-				activity_item.attributes = {};
-				activity_item.data = tweet;
-
-				activity_item.message = tweet.text;
-
-				var chars = [];
-				chars.push("source: "+tweet.source);
-				if (tweet.text.indexOf("http") >= 0) {
-					chars.push("has link");
-					chars.push("link shared by by: "+id.user_name);
-				}
-				if (tweet.text.indexOf("RT @") >= 0) {
-					chars.push("is retweet");
-					chars.push("retweeted by: "+id.user_name);
-				}
-				if (tweet.text.match(/(^|\s)@[-A-Za-z0-9_]+(\s|$)/gi)) {
-					chars.push("is mention");
-				}
-
-				function add_characteristic () {
-					if (chars.length == 0) {
-						return save_activity_item();
+				id.platform = self.platform;
+				id.platform_id = tweet.user.id_str;
+				id.guid = id.platform + "-" + id.platform_id;
+				id.user_name = tweet.user.screen_name;
+				id.display_name = tweet.user.name + " (@"+ tweet.user.screen_name + ")";
+				var photo_found = false;
+				id.photo.forEach(function (photo) {
+					if (photo.url == tweet.user.profile_image_url_https) {
+						photo_found = true;
 					}
-					ch = chars.shift();
-					Characteristic.findOne({text: ch}, function (err, c) {
-						if (err || !c) {
-							c = new Characteristic({text: ch, ratings: {overall: 0}});
-							c.save(function (err) {
+				});
+				if (!photo_found) {
+					id.photo.push({url: tweet.user.profile_image_url_https});
+				}
+				id.updated_at = new Date();
+				id.save(function (err) {
+					activity_item.platform = self.platform;
+					activity_item.guid = activity_item.platform + "-" + tweet.id_str;
+					activity_item.user = id.id;
+					activity_item.message = tweet.text;
+					activity_item.posted_at = new Date(Date.parse(tweet.created_at));
+					activity_item.data = tweet;
+					
+					var chars = [];
+					
+					if (new_item) {
+						activity_item.analyzed_at = new Date(0);
+						activity_item.topics = [];
+						activity_item.characteristics = [];
+						activity_item.attributes = {};
+
+						chars.push("source: "+tweet.source);
+						if (tweet.text.indexOf("http") >= 0) {
+							chars.push("has link");
+							chars.push("link shared by by: "+id.user_name);
+						}
+						if (tweet.text.indexOf("RT @") >= 0) {
+							chars.push("is retweet");
+							chars.push("retweeted by: "+id.user_name);
+						}
+						if (tweet.text.match(/(^|\s)@[-A-Za-z0-9_]+(\s|$)/gi)) {
+							chars.push("is mention");
+						}
+					}
+					
+					function add_characteristic () {
+						if (chars.length == 0) {
+							return save_activity_item();
+						}
+						ch = chars.shift();
+						Characteristic.findOne({text: ch}, function (err, c) {
+							if (err || !c) {
+								c = new Characteristic({text: ch, ratings: {overall: 0}});
+								c.save(function (err) {
+									activity_item.characteristics.push(c.id);
+									add_characteristic();
+								});
+							} else {
 								activity_item.characteristics.push(c.id);
 								add_characteristic();
-							});
-						} else {
-							activity_item.characteristics.push(c.id);
-							add_characteristic();
-						}
-					});
-				}
-				add_characteristic();
-
-				function save_activity_item () {
-					activity_item.save(function (err) {
-						// ERROR?
-						activity_item.analyze(function (err, _item) {
-							if (!err && _item) {
-								_item.save(function (err) {
-									//console.log("ActivytItem saved / "+err);
-									// ERROR?
-								});
-							}
-							if (cb) {
-								//console.log("Finished: "+tweet.text.substring(0, 50));
-								cb();
 							}
 						});
-					});
-				}
-			});
-		});
+					}
+					add_characteristic();
+					
+					function save_activity_item () {
+						activity_item.save(function (err) {
+							// ERROR?
+							activity_item.analyze(function (err, _item) {
+								if (!err && _item) {
+									_item.save(function (err) {
+										//console.log("ActivytItem saved / "+err);
+										// ERROR?
+									});
+								}
+								if (cb) {
+									//console.log("Finished: "+tweet.text.substring(0, 50));
+									cb();
+								}
+							});
+						});
+					}
+				}); // id.save
+			});	// Identity.findOne		
+		}); // ActivityItem.findOne
 	}
 	
 	self._get_settings = function (cb) {

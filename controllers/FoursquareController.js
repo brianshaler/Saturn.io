@@ -243,106 +243,128 @@ exports.controller = function(req, res, next) {
 			cb();
 			return;
 		}
-
+		
 		var message = "";
 		if (checkin.shout && checkin.shout.length > 0) {
 			message = checkin.shout + " @ " + checkin.venue.name;
 		} else {
 			message = "I'm at " + checkin.venue.name;
 		}
-
+		
 		var identity;
-		var activity_item = new ActivityItem();
-		Identity.findOne({platform: self.platform, platform_id: checkin.user.id}, function (err, identity) {
-			if (err || !identity) {
-				identity = new Identity();
-				identity.photo = [];
+		var new_item = false;
+		var activity_item;// = new ActivityItem();
+		
+		ActivityItem.findOne({guid: self.platform+"-"+checkin.id}, function (err, item) {
+			if (err) throw err;
+			
+			if (item) {
+				// it exists, let's just update it
+				activity_item = item;
+			} else {
+				// doesn't exist, create a blank one
+				activity_item = new ActivityItem();
+				new_item = true;
 			}
-			identity.platform = self.platform;
-			identity.platform_id = checkin.user.id;
-			identity.user_name = checkin.user.firstName + " " + checkin.user.lastName;
-			identity.display_name = identity.user_name;
-			identity.guid = identity.platform + "-" + identity.platform_id;
-			var photo_found = false;
-			identity.photo.forEach(function (photo) {
-				if (photo.url == checkin.user.photo) {
-					photo_found = true;
+			
+			Identity.findOne({platform: self.platform, platform_id: checkin.user.id}, function (err, identity) {
+				if (err || !identity) {
+					identity = new Identity();
+					identity.photo = [];
 				}
-			});
-			if (!photo_found) {
-				identity.photo.push({url: checkin.user.photo});
-			}
-			identity.updated_at = new Date();
-			identity.save(function (err) {
-				activity_item.platform = self.platform;
-				activity_item.guid = activity_item.platform + "-" + checkin.id;
-				activity_item.user = identity.id;
-				activity_item.message = message;
-				if (checkin.photos.count > 0) {
-					var image = {};
-					image.type = "photo";
-					image.sizes = [];
-					checkin.photos.items.forEach (function (photo) {
-						photo.sizes.items.forEach(function (size) {
-							image.sizes.push({url: size.url, width: size.width, height: size.height});
-						});
-					});
-					activity_item.media = [image];
-				}
-				activity_item.posted_at = new Date(Date.parse(checkin.createdAt));
-				activity_item.analyzed_at = new Date(0);
-				activity_item.topics = [];
-				activity_item.characteristics = [];
-				activity_item.attributes = {};
-				activity_item.data = checkin;
-
-				var chars = [];
-				chars.push("Foursquare venue: "+checkin.venue.name);
-				if (checkin.shout && checkin.shout.length > 0) {
-					chars.push("Foursquare shout");
-				} else {
-					chars.push("Foursquare no shout");
-				}
-
-				function add_characteristic () {
-					if (chars.length == 0) {
-						return save_activity_item();
+				identity.platform = self.platform;
+				identity.platform_id = checkin.user.id;
+				identity.guid = identity.platform + "-" + identity.platform_id;
+				identity.user_name = checkin.user.firstName + " " + checkin.user.lastName;
+				identity.display_name = identity.user_name;
+				var photo_found = false;
+				identity.photo.forEach(function (photo) {
+					if (photo.url == checkin.user.photo) {
+						photo_found = true;
 					}
-					ch = chars.shift();
-					Characteristic.findOne({text: ch}, function (err, c) {
-						if (err || !c) {
-							c = new Characteristic({text: ch, ratings: {overall: 0}});
-							c.save(function (err) {
+				});
+				if (!photo_found) {
+					identity.photo.push({url: checkin.user.photo});
+				}
+				identity.updated_at = new Date();
+				identity.save(function (err) {
+					activity_item.platform = self.platform;
+					activity_item.guid = activity_item.platform + "-" + checkin.id;
+					activity_item.user = identity.id;
+					activity_item.message = message;
+					if (checkin.photos.count > 0) {
+						var image = {};
+						image.type = "photo";
+						image.sizes = [];
+						checkin.photos.items.forEach (function (photo) {
+							photo.sizes.items.forEach(function (size) {
+								image.sizes.push({url: size.url, width: size.width, height: size.height});
+							});
+						});
+						activity_item.media = [image];
+					}
+					activity_item.posted_at = new Date(Date.parse(checkin.createdAt));
+					activity_item.data = checkin;
+					
+					var chars = [];
+					
+					if (new_item) {
+						activity_item.analyzed_at = new Date(0);
+						activity_item.topics = [];
+						activity_item.characteristics = [];
+						activity_item.attributes = {};
+
+						chars.push("Foursquare venue: "+checkin.venue.name);
+						if (checkin.shout && checkin.shout.length > 0) {
+							chars.push("Foursquare shout");
+						} else {
+							chars.push("Foursquare no shout");
+						}
+						checkin.venue.categories.forEach(function (category) {
+							chars.push("Venue category: "+category.name);
+						});
+					}
+					
+					function add_characteristic () {
+						if (chars.length == 0) {
+							return save_activity_item();
+						}
+						ch = chars.shift();
+						Characteristic.findOne({text: ch}, function (err, c) {
+							if (err || !c) {
+								c = new Characteristic({text: ch, ratings: {overall: 0}});
+								c.save(function (err) {
+									activity_item.characteristics.push(c.id);
+									add_characteristic();
+								});
+							} else {
 								activity_item.characteristics.push(c.id);
 								add_characteristic();
-							});
-						} else {
-							activity_item.characteristics.push(c.id);
-							add_characteristic();
-						}
-					});
-				}
-				add_characteristic();
-
-				function save_activity_item () {
-					activity_item.save(function (err) {
-						// ERROR?
-						activity_item.analyze(function (err, _item) {
-							if (!err && _item) {
-								_item.save(function (err) {
-									//console.log("ActivytItem saved / "+err);
-									// ERROR?
-								});
-							}
-							if (cb) {
-								//console.log("Finished: "+checkin.text.substring(0, 50));
-								cb();
 							}
 						});
-					});
-				}
-			});
-		});
+					}
+					add_characteristic();
+
+					function save_activity_item () {
+						activity_item.save(function (err) {
+							// ERROR?
+							activity_item.analyze(function (err, _item) {
+								if (!err && _item) {
+									_item.save(function (err) {
+										//console.log("ActivytItem saved / "+err);
+										// ERROR?
+									});
+								}
+								if (cb) {
+									//console.log("Finished: "+checkin.text.substring(0, 50));
+									cb();
+								}
+							});
+						});
+					}
+				}); // id.save
+			});	// Identity.findOne		
+		}); // ActivityItem.findOne
 	}
 	
 	self._get_settings = function (cb) {

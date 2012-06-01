@@ -280,89 +280,106 @@ exports.controller = function(req, res, next) {
 		}
 
 		var identity;
-		var activity_item = new ActivityItem();
-		Identity.findOne({platform: self.platform, platform_id: post.user.id}, function (err, identity) {
-			if (err || !identity) {
-				identity = new Identity();
-				identity.photo = [];
+		var new_item = false;
+		var activity_item;// = new ActivityItem();
+		
+		ActivityItem.findOne({guid: self.platform+"-"+post.id}, function (err, item) {
+			if (err) throw err;
+			
+			if (item) {
+				// it exists, let's just update it
+				activity_item = item;
+			} else {
+				// doesn't exist, create a blank one
+				activity_item = new ActivityItem();
+				new_item = true;
 			}
-			identity.platform = self.platform;
-			identity.platform_id = post.user.id;
-			identity.user_name = post.user.username;
-			identity.display_name = post.user.full_name + " (" + post.user.username + ")";
-			identity.guid = identity.platform + "-" + identity.platform_id;
-			var photo_found = false;
-			identity.photo.forEach(function (photo) {
-				if (photo.url == post.user.profile_picture) {
-					photo_found = true;
+			
+			Identity.findOne({platform: self.platform, platform_id: post.user.id}, function (err, identity) {
+				if (err || !identity) {
+					identity = new Identity();
+					identity.photo = [];
 				}
-			});
-			if (!photo_found) {
-				identity.photo.push({url: post.user.profile_picture});
-			}
-			identity.updated_at = new Date();
-			identity.save(function (err) {
-				activity_item.platform = self.platform;
-				activity_item.guid = activity_item.platform + "-" + post.id;
-				activity_item.user = identity.id;
-				activity_item.message = message;
-				var image = {};
-				var keys = ["standard_resolution", "thumbnail", "low_resolution"];
-				image.type = "photo";
-				image.sizes = [];
-				keys.forEach (function (size) {
-					image.sizes.push({url: post.images[size].url, width: post.images[size].width, height: post.images[size].height});
-				});
-				activity_item.media = [image];
-				activity_item.posted_at = new Date(parseInt(post.created_time)*1000);
-				activity_item.analyzed_at = new Date(0);
-				activity_item.topics = [];
-				activity_item.characteristics = [];
-				activity_item.attributes = {};
-				activity_item.data = post;
-
-				var chars = [];
-				//chars.push("Instagram venue: "+post.venue.name);
-				
-				function add_characteristic () {
-					if (chars.length == 0) {
-						return save_activity_item();
+				identity.platform = self.platform;
+				identity.platform_id = post.user.id;
+				identity.guid = identity.platform + "-" + identity.platform_id;
+				identity.user_name = post.user.username;
+				identity.display_name = post.user.full_name + " (" + post.user.username + ")";
+				var photo_found = false;
+				identity.photo.forEach(function (photo) {
+					if (photo.url == post.user.profile_picture) {
+						photo_found = true;
 					}
-					ch = chars.shift();
-					Characteristic.findOne({text: ch}, function (err, c) {
-						if (err || !c) {
-							c = new Characteristic({text: ch, ratings: {overall: 0}});
-							c.save(function (err) {
+				});
+				if (!photo_found) {
+					identity.photo.push({url: post.user.profile_picture});
+				}
+				identity.updated_at = new Date();
+				identity.save(function (err) {
+					activity_item.platform = self.platform;
+					activity_item.guid = activity_item.platform + "-" + post.id;
+					activity_item.user = identity.id;
+					activity_item.message = message;
+					var image = {};
+					var keys = ["standard_resolution", "thumbnail", "low_resolution"];
+					image.type = "photo";
+					image.sizes = [];
+					keys.forEach (function (size) {
+						image.sizes.push({url: post.images[size].url, width: post.images[size].width, height: post.images[size].height});
+					});
+					activity_item.media = [image];
+					activity_item.posted_at = new Date(parseInt(post.created_time)*1000);
+					activity_item.data = post;
+					
+					var chars = [];
+					
+					if (new_item) {
+						activity_item.analyzed_at = new Date(0);
+						activity_item.topics = [];
+						activity_item.characteristics = [];
+						activity_item.attributes = {};
+					}
+					
+					function add_characteristic () {
+						if (chars.length == 0) {
+							return save_activity_item();
+						}
+						ch = chars.shift();
+						Characteristic.findOne({text: ch}, function (err, c) {
+							if (err || !c) {
+								c = new Characteristic({text: ch, ratings: {overall: 0}});
+								c.save(function (err) {
+									activity_item.characteristics.push(c.id);
+									add_characteristic();
+								});
+							} else {
 								activity_item.characteristics.push(c.id);
 								add_characteristic();
-							});
-						} else {
-							activity_item.characteristics.push(c.id);
-							add_characteristic();
-						}
-					});
-				}
-				add_characteristic();
-
-				function save_activity_item () {
-					activity_item.save(function (err) {
-						// ERROR?
-						activity_item.analyze(function (err, _item) {
-							if (!err && _item) {
-								_item.save(function (err) {
-									//console.log("ActivytItem saved / "+err);
-									// ERROR?
-								});
-							}
-							if (cb) {
-								//console.log("Finished: "+post.text.substring(0, 50));
-								cb();
 							}
 						});
-					});
-				}
-			});
-		});
+					}
+					add_characteristic();
+					
+					function save_activity_item () {
+						activity_item.save(function (err) {
+							// ERROR?
+							activity_item.analyze(function (err, _item) {
+								if (!err && _item) {
+									_item.save(function (err) {
+										//console.log("ActivytItem saved / "+err);
+										// ERROR?
+									});
+								}
+								if (cb) {
+									//console.log("Finished: "+post.text.substring(0, 50));
+									cb();
+								}
+							});
+						});
+					}
+				}); // id.save
+			});	// Identity.findOne		
+		}); // ActivityItem.findOne
 	}
 	
 	self._get_settings = function (cb) {
