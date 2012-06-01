@@ -472,8 +472,8 @@ ActivityItem.prototype.get_avatar = function () {
 }
 ActivityItem.prototype.get_avatar_url = function () {
 	var url = "/images/saturn/logo_t.png";
-	if (this.user && this.user.photo && this.user.photo.length > 0 && this.user.photo[0] && this.user.photo[0].url) {
-		url = this.user.photo[0].url;
+	if (this.user && this.user.photo && this.user.photo.length > 0 && this.user.photo[this.user.photo.length-1] && this.user.photo[this.user.photo.length-1].url) {
+		url = this.user.photo[this.user.photo.length-1].url;
 	}
 	return url;
 }

@@ -51,8 +51,8 @@ function update_search (e) {
 				var author_span = $("<span class='activity-item-author'>");
 				
 				var avatar_url = "/images/saturn/logo_t.png";
-				if (user.photo && user.photo.length > 0 && user.photo[0] && user.photo[0].url) {
-					avatar_url = user.photo[0].url;
+				if (user.photo && user.photo.length > 0 && user.photo[user.photo.length-1] && user.photo[user.photo.length-1].url) {
+					avatar_url = user.photo[user.photo.length-1].url;
 				}
 				
 				var img = $("<img class='activity-item-avatar'>").attr("src", avatar_url);
