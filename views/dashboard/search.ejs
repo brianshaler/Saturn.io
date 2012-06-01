@@ -1,0 +1,84 @@
+<div class="grid_9 alpha omega">
+	Search: <input type="text" name="search_text" id="search_text" /> <input type="button" id="search_button" value="go" />
+</div>
+
+<div class="grid_5 alpha">
+	<div class="stream-results"></div>
+</div>
+<div class="grid_4 omega">
+	<div class="user-results"></div>
+</div>
+<script>
+
+$("#search_text").bind("keyup", update_search);
+$("#search_button").bind("click", update_search);
+
+var searching = false;
+var next_search = false;
+var last_q = "";
+function update_search (e) {
+	var q = $("#search_text").val();
+	if (q == last_q || searching) return;
+	
+	if (q.indexOf(last_q) == -1) {
+		if (q.length >= 2) {
+			$(".stream-results").html("Loading...");
+		} else {
+			$(".stream-results").html("");
+		}
+	}
+	if (q.length >= 2) {
+		if (current_view) {
+			current_view.deactivate();
+		}
+		search_url = "/search/all?q="+encodeURI(q);
+		searching = true;
+		$.getJSON(search_url, function (data) {
+			searching = false;
+			$(".stream-results").html("");
+			$(".user-results").html("");
+			
+			current_view = new ActivityView("results", search_url);
+			current_view.minimum_rating = -100;
+			current_view.collapse_below = 1;
+			$.each(data.items, function (i, item) {
+				current_view.add_item(item);
+			});
+			
+			$.each(data.users, function (i, user) {
+				var div = $("<div class='bd media'>");
+				var img_div = $("<div class='img'>");
+				var author_span = $("<span class='activity-item-author'>");
+				
+				var avatar_url = "/images/saturn/logo_t.png";
+				if (user.photo && user.photo.length > 0 && user.photo[0] && user.photo[0].url) {
+					avatar_url = user.photo[0].url;
+				}
+				
+				var img = $("<img class='activity-item-avatar'>").attr("src", avatar_url);
+				var link = $("<a>").attr("href", "/identity/view/"+user._id);
+				var img_link = link.clone();
+				var author_link = link.clone();
+				img_link.append(img);
+				img_div.append(img_link);
+				author_link.html(user.display_name);
+				author_span.append(author_link);
+				
+				div.append(img_div);
+				div.append(author_span);
+				
+				$(".user-results").append(div);
+			});
+			
+			if (q != $("#search_text").val()) {
+				update_search();
+			}
+		});
+	} else {
+		$(".stream-results").html("");
+		$(".user-results").html("");
+	}
+	last_q = q;
+}
+
+</script>

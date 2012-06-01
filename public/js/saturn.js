@@ -90,6 +90,7 @@ function get_view (_name) {
 
 function ActivityView (_name, _url) {
 	var self = this;
+	self.active = true;
 	self.name = _name;
 	self.url = _url;
 	self.new_items = [];
@@ -130,6 +131,8 @@ ActivityView.prototype.set_sort = function (sort) {
 
 ActivityView.prototype.fetch_items = function () {
 	var self = this;
+	
+	if (!self.active) { return; }
 	
 	$.getJSON(self.url+"?since="+(self.newest_item-60), function (data) {
 		if (data && data.length > 0) {
@@ -204,7 +207,10 @@ ActivityView.prototype.show_new_items = function (e) {
 	
 	return false;
 }
-
+ActivityView.prototype.deactivate = function () {
+	var self = this;
+	self.active = false;
+}
 
 
 
