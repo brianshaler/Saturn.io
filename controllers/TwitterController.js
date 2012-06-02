@@ -421,57 +421,64 @@ exports.controller = function(req, res, next) {
 				new_item = true;
 			}
 			
-			Identity.findOne({platform: self.platform, platform_id: tweet.user.id_str}, function (err, id) {
-				if (err || !id) {
-					id = new Identity();
-					id.photo = [];
+			Identity.findOne({platform: self.platform, platform_id: tweet.user.id_str}, function (err, identity) {
+				if (err || !identity) {
+					identity = new Identity();
+					identity.photo = [];
 				}
-				id.platform = self.platform;
-				id.platform_id = tweet.user.id_str;
-				id.guid = id.platform + "-" + id.platform_id;
-				id.user_name = tweet.user.screen_name;
-				id.display_name = tweet.user.name + " (@"+ tweet.user.screen_name + ")";
-				if (!id.attributes) {
-					id.attributes = {};
+				identity.platform = self.platform;
+				identity.platform_id = tweet.user.id_str;
+				identity.guid = identity.platform + "-" + identity.platform_id;
+				identity.user_name = tweet.user.screen_name;
+				identity.display_name = tweet.user.name + " (@"+ tweet.user.screen_name + ")";
+				if (!identity.attributes) {
+					identity.attributes = {};
 				}
-				id.attributes.twitter_favorites_count = tweet.user.favourites_count;
-				if (!id.attributes.twitter_favorites_cached) {
-					id.attributes.twitter_favorites_cached = 0;
+				identity.attributes.twitter_favorites_count = tweet.user.favourites_count;
+				if (!identity.attributes.twitter_favorites_cached) {
+					identity.attributes.twitter_favorites_cached = 0;
+				}
+				if (tweet.user.following == true) {
+					identity.attributes.is_friend = true;
 				}
 				var photo_found = false;
-				id.photo.forEach(function (photo) {
+				identity.photo.forEach(function (photo) {
 					if (photo.url == tweet.user.profile_image_url_https) {
 						photo_found = true;
 					}
 				});
 				if (!photo_found) {
-					id.photo.push({url: tweet.user.profile_image_url_https});
+					identity.photo.push({url: tweet.user.profile_image_url_https});
 				}
-				id.updated_at = new Date();
-				id.save(function (err) {
+				identity.updated_at = new Date();
+				identity.save(function (err) {
 					activity_item.platform = self.platform;
 					activity_item.guid = activity_item.platform + "-" + tweet.id_str;
-					activity_item.user = id.id;
+					activity_item.user = identity.id;
 					activity_item.posted_at = new Date(Date.parse(tweet.created_at));
 					activity_item.data = tweet;
-					
-					var chars = [];
-					
 					if (new_item) {
 						activity_item.message = tweet.text;
 						activity_item.analyzed_at = new Date(0);
 						activity_item.topics = [];
 						activity_item.characteristics = [];
 						activity_item.attributes = {};
-
+					}
+					if (tweet.user.following == true) {
+						activity_item.attributes.is_friend = true;
+					}
+					
+					var chars = [];
+					
+					if (new_item) {
 						chars.push("source: "+tweet.source);
 						if (tweet.text.indexOf("http") >= 0) {
 							chars.push("has link");
-							chars.push("link shared by by: "+id.user_name);
+							chars.push("link shared by by: "+identity.user_name);
 						}
 						if (tweet.text.indexOf("RT @") >= 0) {
 							chars.push("is retweet");
-							chars.push("retweeted by: "+id.user_name);
+							chars.push("retweeted by: "+identity.user_name);
 						}
 						if (tweet.text.match(/(^|\s)@[-A-Za-z0-9_]+(\s|$)/gi)) {
 							chars.push("is mention");
@@ -520,7 +527,7 @@ exports.controller = function(req, res, next) {
 							});
 						});
 					}
-				}); // id.save
+				}); // identity.save
 			});	// Identity.findOne		
 		}); // ActivityItem.findOne
 	}

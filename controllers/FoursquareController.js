@@ -290,6 +290,10 @@ exports.controller = function(req, res, next) {
 				identity.guid = identity.platform + "-" + identity.platform_id;
 				identity.user_name = checkin.user.firstName + " " + checkin.user.lastName;
 				identity.display_name = identity.user_name;
+				if (!identity.attributes) {
+					identity.attributes = {};
+				}
+				identity.attributes.is_friend = true;
 				var photo_found = false;
 				identity.photo.forEach(function (photo) {
 					if (photo.url == checkin.user.photo) {
@@ -326,7 +330,8 @@ exports.controller = function(req, res, next) {
 						activity_item.topics = [];
 						activity_item.characteristics = [];
 						activity_item.attributes = {};
-
+						activity_item.attributes.is_friend = true;
+						
 						chars.push("Foursquare venue: "+checkin.venue.name);
 						if (checkin.shout && checkin.shout.length > 0) {
 							chars.push("Foursquare shout");
@@ -380,7 +385,7 @@ exports.controller = function(req, res, next) {
 							});
 						});
 					}
-				}); // id.save
+				}); // identity.save
 			});	// Identity.findOne		
 		}); // ActivityItem.findOne
 	}
