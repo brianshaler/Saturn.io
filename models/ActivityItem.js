@@ -465,7 +465,7 @@ ActivityItemSchema.methods.unshorten_urls = function(cb) {
 		next();
 	}
 	/**/
-});
+}
 
 function unshorten_urls(_message, cb) {
 	var regex = /\(?\bhttps?:\/\/[-A-Za-z0-9+&@#\/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#\/%=~_()|]/gi;
