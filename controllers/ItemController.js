@@ -24,10 +24,17 @@ exports.controller = function(req, res, next) {
 		.populate("characteristics")
 		.run(function (err, item) {
 			if (!err && item) {
-				res.render("objects/activity_item", {
-					layout: self.layout, 
-					item: item
-				});
+				
+				switch (req.params.format) {
+					case 'json':
+						res.send(item);
+						break;
+					default:
+						res.render("objects/activity_item", {
+							layout: self.layout, 
+							item: item
+						});
+				}
 			} else {
 				res.redirect("/dashboard");
 			}
@@ -42,44 +49,11 @@ exports.controller = function(req, res, next) {
 		ActivityItem.findOne({_id: id})
 		.run(function (err, item) {
 			if (!err && item) {
-				//item.analyzed_at = new Date(Date.now() - 86400*1000);
-				item.save(function (err) {
-					Topic.find({_id: {"$in": item.topics}}, function (err, topics) {
-						if (!err && topics) {
-							topics.forEach(function (f) {
-								f.ratings.likes++;
-								f.save(function (err) {
-									console.log("Just liked "+f.text);
-									// err?
-								});
-							});
-						}
-						Characteristic.find({_id: {"$in": item.characteristics}}, function (err, chars) {
-							if (!err && chars) {
-								chars.forEach(function (c) {
-									c.ratings.likes++;
-									c.save(function (err) {
-										// err?
-									});
-								});
-							}
-							Identity.findOne({_id: item.user}, function (err, user) {
-								// TEMPORARY, save to get ratings set
-								user.calculate_rating();
-								user.ratings.likes++;
-								user.save(function (err) {
-									redirect_url = "/item/view/"+item.id;
-									item.analyzed_at = new Date();
-									item.analyze(function (err, _item) {
-										_item.save(function (err) {
-											// err?
-											return finished();
-										});
-									});
-								});
-							});
-						});
-					});
+				item.like(function (err) {
+					if (err) console.log(err);
+					
+					redirect_url = "/item/view/"+item.id;
+					return finished();
 				});
 			} else {
 				return finished();
@@ -105,42 +79,11 @@ exports.controller = function(req, res, next) {
 		ActivityItem.findOne({_id: id})
 		.run(function (err, item) {
 			if (!err && item) {
-				item.analyzed_at = new Date(Date.now() - 3600*1000);
-				item.save(function (err) {
-					Topic.find({_id: {"$in": item.topics}}, function (err, topics) {
-						if (!err && topics) {
-							topics.forEach(function (f) {
-								f.ratings.dislikes++;
-								f.save(function (err) {
-									// err?
-								});
-							});
-						}
-						Characteristic.find({_id: {"$in": item.characteristics}}, function (err, chars) {
-							if (!err && chars) {
-								chars.forEach(function (c) {
-									c.ratings.dislikes++;
-									c.save(function (err) {
-										// err?
-									});
-								});
-							}
-							Identity.findOne({_id: item.user}, function (err, user) {
-								user.calculate_rating();
-								user.ratings.dislikes++;
-								user.save(function (err) {
-									redirect_url = "/item/view/"+item.id;
-									item.analyzed_at = new Date();
-									item.analyze(function (err, _item) {
-										_item.save(function (err) {
-											// err?
-											return finished();
-										});
-									});
-								});
-							});
-						});
-					});
+				item.dislike(function (err) {
+					if (err) console.log(err);
+					
+					redirect_url = "/item/view/"+item.id;
+					return finished();
 				});
 			} else {
 				return finished();

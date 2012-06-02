@@ -44,6 +44,64 @@ var ActivityItemSchema = new Schema({
 	created_at: {type: Date, default: Date.now, index: true}
 });
 
+ActivityItemSchema.methods.like = function(cb) {
+	var self = this;
+	self.increment_rating("likes", cb);
+}
+
+ActivityItemSchema.methods.dislike = function(cb) {
+	var self = this;
+	self.increment_rating("dislikes", cb);
+}
+
+ActivityItemSchema.methods.increment_rating = function(rating, cb) {
+	var self = this;
+	var errors = [];
+	
+	var Topic = mongoose.model('Topic'),
+		Characteristic = mongoose.model('Characteristic'),
+		Identity = mongoose.model('Identity');
+	
+	Topic.find({_id: {"$in": self.topics}}, function (err, topics) {
+		if (err) { errors.push(err); }
+		if (!err && topics) {
+			topics.forEach(function (t) {
+				t.ratings[rating]++;
+				t.save(function (err) {
+					if (err) { errors.push(err); }
+				});
+			});
+		}
+		Characteristic.find({_id: {"$in": self.characteristics}}, function (err, chars) {
+			if (err) { errors.push(err); }
+			if (!err && chars) {
+				chars.forEach(function (c) {
+					c.ratings[rating]++;
+					c.save(function (err) {
+						if (err) { errors.push(err); }
+					});
+				});
+			}
+			Identity.findOne({_id: self.user}, function (err, user) {
+				// TEMPORARY, save to get ratings set
+				user.calculate_rating();
+				user.ratings[rating]++;
+				user.save(function (err) {
+					if (err) { errors.push(err); }
+					self.analyzed_at = new Date();
+					self.analyze(function (err, _item) {
+						if (err) { errors.push(err); }
+						_item.save(function (err) {
+							if (err) { errors.push(err); }
+							return cb(errors.length > 0 ? errors : null);
+						});
+					});
+				});
+			});
+		});
+	});
+}
+
 ActivityItemSchema.methods.analyze = function(cb) {
 	var self = this;
 	var item = self;
