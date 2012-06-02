@@ -31,19 +31,22 @@ Characteristic.pre('save', function (next) {
 		self.ratings.dislikes = 0;
 	}
 	
+	var likes = self.ratings.likes;
+	var dislikes = self.ratings.dislikes;
+	if (likes == 0 || dislikes == 0) {
+		likes *= likes;
+		dislikes *= dislikes;
+	}
 	var factors = [];
 	var likeness = 0;
-	var thumbs = self.ratings.dislikes + self.ratings.likes;
+	var thumbs = dislikes + likes;
 	var percent = thumbs < 100 ? thumbs : 100;
-	percent = percent > 10 ? percent : 10;
-	if (self.ratings.dislikes > self.ratings.likes) {
-		likeness = -(self.ratings.dislikes-self.ratings.likes)/self.ratings.dislikes*percent;
+	percent = percent > 10 ? percent : percent + (10-percent)*.5;
+	if (dislikes > likes) {
+		likeness = -(dislikes-likes)/dislikes*percent;
 	}
-	if (self.ratings.likes > self.ratings.dislikes) {
-		likeness = (self.ratings.likes-self.ratings.dislikes)/self.ratings.likes*percent;
-	}
-	if (self.ratings.likes == 0 || self.ratings.dislikes == 0) {
-		likeness *= Math.abs(likeness);
+	if (likes > dislikes) {
+		likeness = (likes-dislikes)/likes*percent;
 	}
 	if (likeness != 0) {
 		factors[0] = likeness;

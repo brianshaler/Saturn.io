@@ -43,28 +43,35 @@ Identity.methods.calculate_rating = function () {
 		this.ratings.dislikes = 0;
 	}
 	
+	var likes = self.ratings.likes;
+	var dislikes = self.ratings.dislikes;
+	if (likes == 0 || dislikes == 0) {
+		likes *= likes;
+		dislikes *= dislikes;
+	}
 	var factors = [];
 	var likeness = 0;
-	var thumbs = this.ratings.dislikes + this.ratings.likes;
+	var thumbs = dislikes + likes;
 	var percent = thumbs < 100 ? thumbs : 100;
-	if (this.ratings.dislikes > this.ratings.likes) {
-		likeness = -(this.ratings.dislikes-this.ratings.likes)/this.ratings.dislikes*percent;
+	percent = percent > 10 ? percent : percent + (10-percent)*.5;
+	if (dislikes > likes) {
+		likeness = -(dislikes-likes)/dislikes*percent;
 	}
-	if (this.ratings.likes > this.ratings.dislikes) {
-		likeness = (this.ratings.likes-this.ratings.dislikes)/this.ratings.likes*percent;
+	if (likes > dislikes) {
+		likeness = (likes-dislikes)/likes*percent;
 	}
 	if (likeness != 0) {
 		factors[0] = likeness;
 	}
 	var sum = 0;
-	for (var k in this.ratings) {
-		if (parseFloat(this.ratings[k]) != 0 && k != "overall" && k != "likes" && k != "dislikes") {
+	for (var k in self.ratings) {
+		if (parseFloat(self.ratings[k]) != 0 && k != "overall" && k != "likes" && k != "dislikes") {
 			
-			factors[factors.length] = parseFloat(this.ratings[k]);
+			factors[factors.length] = parseFloat(self.ratings[k]);
 		}
 	}
 	factors.forEach(function (f) { sum += f; });
-	this.ratings.overall = factors.length > 0 ? sum / factors.length : 0;
+	self.ratings.overall = factors.length > 0 ? sum / factors.length : 0;
 	this.commit("ratings");
 }
 
