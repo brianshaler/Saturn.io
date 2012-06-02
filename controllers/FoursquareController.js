@@ -199,7 +199,8 @@ exports.controller = function(req, res, next) {
 				foursquare.Checkins.getRecentCheckins(params, fsq.value.access_token, function (err, result) {
 					
 					if (err) {
-						throw err;
+						console.log(err);
+						return finished();
 					}
 					if (!result || !result.recent) {
 						console.log("Foursquare: No results?");
