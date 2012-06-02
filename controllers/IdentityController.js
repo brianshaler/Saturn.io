@@ -13,10 +13,12 @@ var sys = require('sys'),
 exports.controller = function(req, res, next) {
 	Controller.call(this, req, res, next);
 	var self = this;
-
+	
+	self.layout = "dashboard";
+	
 	self.view = function() {
 		var display = {
-			layout: "dashboard/dashboard-layout",
+			layout: self.layout,
 			identity: false,
 			items: false
 		};

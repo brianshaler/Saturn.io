@@ -14,9 +14,11 @@ exports.controller = function(req, res, next) {
 	
 	self.nav_items = [{group: "default", url: "/search", text: "Search"}];
 	
+	self.layout = "dashboard";
+	
 	self.index = function () {
 		res.render("dashboard/search", {
-			layout: "dashboard/dashboard-layout"
+			layout: self.layout
 		});
 	}
 	

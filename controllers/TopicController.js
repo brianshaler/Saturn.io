@@ -12,6 +12,8 @@ exports.controller = function(req, res, next) {
 	Controller.call(this, req, res, next);
 	var self = this;
 	
+	self.layout = "dashboard";
+	
 	self.analyze_trending = function () {
 		var trending_topics = [];
 		
@@ -130,7 +132,10 @@ exports.controller = function(req, res, next) {
 					res.send(trending_topics);
 					break;
 				default:
-					res.render(ViewTemplatePath + "/list", {layout: "dashboard/dashboard-layout", topics: trending_topics});
+					res.render(ViewTemplatePath + "/list", {
+						layout: self.layout,
+						topics: trending_topics
+					});
 			}
 			//res.send(trending_topics);
 		}
@@ -157,7 +162,10 @@ exports.controller = function(req, res, next) {
 				topics = [];
 			}
 			
-			res.render(ViewTemplatePath + "/list", {layout: "dashboard/dashboard-layout", topics: topics});
+			res.render(ViewTemplatePath + "/list", {
+				layout: self.layout, 
+				topics: topics
+			});
 		});
 	}
 	// end /topic/popular
@@ -178,7 +186,11 @@ exports.controller = function(req, res, next) {
 					if (err || !items) {
 						items = [];
 					}
-					res.render(ViewTemplatePath + "/view", {layout: "dashboard/dashboard-layout", topic: topic, items: items});
+					res.render(ViewTemplatePath + "/view", {
+						layout: self.layout, 
+						topic: topic, 
+						items: items
+					});
 				});
 			} else {
 				res.redirect("/dashboard");
@@ -195,7 +207,9 @@ exports.controller = function(req, res, next) {
 				return next(err);
 			}
 			if (!topic) {
-				return res.render("404", {layout: "dashboard/dashboard-layout"});
+				return res.render("404", {
+					layout: self.layout
+				});
 			}
 			res.redirect("/topic/view/"+topic.id);
 		});
