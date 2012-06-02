@@ -3,7 +3,7 @@
  **/
 
 var mongoose = require('mongoose'),
-	unshorten = require('unshorten'),
+	unshortener = require('unshortener'),
 	natural = require('natural'),
 	Schema = mongoose.Schema,
 	ObjectId = Schema.ObjectId;
@@ -425,46 +425,10 @@ ActivityItemSchema.methods.unshorten_urls = function(cb) {
 	}
 	
 	var orig = self.message
-	//console.log("Starting message: "+self.message);
 	unshorten_urls(self.message, function(m) {
-		//console.log("New message (1): "+m);
-		if (self.message != m) {
-			unshorten_urls(m, function(m) {
-				//console.log("New message (2): "+m);
-				self.message = m;
-				cb();
-			});
-		} else {
-			cb();
-		}
+		self.message = m;
+		cb();
 	});
-	
-	/** /
-	var regex = /\(?\bhttp:\/\/[-A-Za-z0-9+&@#\/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#\/%=~_()|]/gi;
-	var matches = self.message.match(regex);
-	if (matches) {
-		console.log(matches);
-		function unshorten_next () {
-			if (matches.length == 0) {
-				return finished();
-			}
-			var match = matches.pop();
-			unshorten(match, function (url) {
-				console.log("Unshortened: "+match+" => "+url);
-				if (match != url) {
-					self.message.replace(match, url);
-				}
-				unshorten_next();
-			});
-		}
-		unshorten_next();
-		function finished () {
-			next();
-		}
-	} else {
-		next();
-	}
-	/**/
 }
 
 function unshorten_urls(_message, cb) {
@@ -473,13 +437,17 @@ function unshorten_urls(_message, cb) {
 	if (matches) {
 		function unshorten_next () {
 			if (matches.length == 0) {
-				return finished();
+				return cb(_message);
 			}
 			var match = matches.pop();
-			unshorten(match, function(url) {
-				if (match != url) {
+			unshortener.expand(match, function(url) {
+				if (match != url.href) {
 					match = match.replace(/ /g, "%20");
-					_message = _message.replace(match, url);
+					// unshortener might return an invalid URL....
+					// https://github.com/Swizec/node-unshortener/issues/8
+					if (/^https?:\/\//.test(url.href)) {
+						_message = _message.replace(match, url.href);
+					}
 				}
 				unshorten_next();
 			});
