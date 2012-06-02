@@ -431,6 +431,13 @@ exports.controller = function(req, res, next) {
 				id.guid = id.platform + "-" + id.platform_id;
 				id.user_name = tweet.user.screen_name;
 				id.display_name = tweet.user.name + " (@"+ tweet.user.screen_name + ")";
+				if (!id.attributes) {
+					id.attributes = {};
+				}
+				id.attributes.twitter_favorites_count = tweet.user.favourites_count;
+				if (!id.attributes.twitter_favorites_cached) {
+					id.attributes.twitter_favorites_cached = 0;
+				}
 				var photo_found = false;
 				id.photo.forEach(function (photo) {
 					if (photo.url == tweet.user.profile_image_url_https) {

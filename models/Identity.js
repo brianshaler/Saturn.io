@@ -15,6 +15,7 @@ var Identity = new Schema({
 	display_name: {type: String},
 	photo: [{}],
 	bio: {type: String},
+	attributes: {},
 	notes: {type: String},
 	ratings: {},
 	urls: [{}],
