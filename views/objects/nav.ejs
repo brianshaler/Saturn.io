@@ -1,13 +1,29 @@
-<div class="grid_3">
-	<ul class="nav nav-list">
-		<li class="nav-header">Dashboard</li>
-			<li><a href="/dashboard">Recent Posts</a></li>
-			<li><a href="/dashboard/top">Top Posts</a></li>
-			<li><a href="/search">Search</a></li>
-		<li class="nav-header">Topics</li>
-			<li><a href="/topic/trending">Trending</a></li>
-			<li><a href="/topic/popular">Popular</a></li>
-		<li class="nav-header">Settings</li>
-			<li><a href="/admin">Admin</a></li>
+<%
+url = get_url();
+nav_items = get_nav_items();
+
+longest_match = "";
+nav_items.forEach(function (item) { 
+	if ((new RegExp("^"+item.url.replace(/\//g, "\\/"))).test(url)) {
+		if (item.url.length > longest_match.length) {
+			longest_match = item.url;
+		}
+	}
+});
+
+
+%>
+<div id="nav" class="nav">
+	<a style="float: right; margin: 6px 15px 2px 0px;" class="brand" href="/"><img src="/images/saturn/logo_white_t.png" /></a>
+	<div class="clear"></div>
+	<ul class="nav-list">
+		<% nav_items.forEach(function (item) { 
+			if (item.url == longest_match) {
+				active = " active";
+			} else {
+				active = "";
+			} %>
+		<li class="<%= active %>"><a href="<%= item.url %>"><%= item.text %></a></li>
+		<% }) %>
 	</ul>
 </div>

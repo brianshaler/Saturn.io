@@ -12,7 +12,9 @@ var mongoose = require('mongoose'),
 exports.controller = function(req, res, next) {
 	Controller.call(this, req, res, next);
 	var self = this;
-
+	
+	self.layout = "dashboard";
+	
 	self.view = function () {
 		var id = req.params.id;
 		
@@ -22,7 +24,10 @@ exports.controller = function(req, res, next) {
 		.populate("characteristics")
 		.run(function (err, item) {
 			if (!err && item) {
-				res.render("objects/activity_item", {layout: "dashboard/dashboard-layout", item: item});
+				res.render("objects/activity_item", {
+					layout: self.layout, 
+					item: item
+				});
 			} else {
 				res.redirect("/dashboard");
 			}

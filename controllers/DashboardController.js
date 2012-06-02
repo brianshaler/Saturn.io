@@ -14,6 +14,10 @@ exports.controller = function(req, res, next) {
 	Controller.call(this, req, res, next);
 	var self = this;
 	
+	self.nav_items = [{group: "default", url: "/dashboard/top", text: "Top Posts"}];
+	
+	self.layout = "dashboard";
+	
 	self.index = function() {
 		if (!req.require_authentication("/dashboard")) { return; }
 		
@@ -46,7 +50,7 @@ exports.controller = function(req, res, next) {
 					break;
 				default:
 					res.render("objects/stream", {
-						layout: "dashboard/dashboard-layout",
+						layout: self.layout,
 						activity_items: activity_items, 
 						stream: settings
 					});
@@ -71,7 +75,11 @@ exports.controller = function(req, res, next) {
 				activity_items = items;
 			}
 			
-			res.render("objects/stream", {layout: "dashboard/dashboard-layout", activity_items: activity_items, stream: settings});
+			res.render("objects/stream", {
+				layout: self.layout, 
+				activity_items: activity_items, 
+				stream: settings
+			});
 		});
 	}
 	// end /dashboard/top

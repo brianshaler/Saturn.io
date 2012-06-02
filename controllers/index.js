@@ -73,6 +73,13 @@ exports.init = function(app, next) {
 					}
 					delete controller;
 				});
+				
+				var controller = new file.controller();
+				if (controller.nav_items) {
+					controller.nav_items.forEach(function (nav_item) {
+						app.add_nav_item(nav_item.group, nav_item);
+					});
+				}
 			}
 		});
 		app.get('/', index);
@@ -86,9 +93,18 @@ exports._tick = function(app) {
 	var mongoose = require('mongoose');
 	var Task = mongoose.model("Task");
 	
-	Task.findOne({next_run: {"$lt": Date.now()}}, function (err, task)
+	Task.find({next_run: {"$lt": Date.now()}})
+	.sort("next_run", 1)
+	.run(function (err, tasks)
 	{
 		if (err) throw err;
+		
+		var task;
+		if (tasks.length >= 1) {
+			task = tasks[0];
+		} else {
+			return;
+		}
 		
 		var rand = Math.round(Math.random()*1000);
 		if (!task)

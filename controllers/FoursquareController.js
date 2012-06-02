@@ -17,14 +17,19 @@ exports.controller = function(req, res, next) {
 	Controller.call(this, req, res);
 	var self = this;
 	
-	self.platform = "foursquare";
+	self.nav_items = [{group: "admin", url: "/foursquare/setup", text: "Foursquare"}];
+	
+	self.layout = "dashboard";
 	
 	self.tasks = [
 		{controller: "FoursquareController", method: "timeline", interval: 120}
 	];
 	
+	self.platform = "foursquare";
+	
 	self.setup = function () {
 		if (!req.require_authentication()) { return; }
+		req.nav_group = "admin";
 		
 		var step = req.params.id;
 		var steps = ["app", "connect"];
@@ -79,7 +84,7 @@ exports.controller = function(req, res, next) {
 					}
 					// Show the page for this step
 					return self.render('admin/setup/foursquare/connect', {
-						layout: "admin/admin-layout",
+						layout: self.layout,
 						locals: {
 							title: 'Connect to Foursquare',
 							settings: {},
@@ -107,7 +112,7 @@ exports.controller = function(req, res, next) {
 					} else {
 						// Show the page for this step
 						return self.render('admin/setup/foursquare/app', {
-							layout: "admin/admin-layout",
+							layout: self.layout,
 							locals: {
 								title: 'Foursquare',
 								settings: fsq.value
@@ -193,6 +198,13 @@ exports.controller = function(req, res, next) {
 				// Another instance of payload being same parameter as err.... shit.
 				foursquare.Checkins.getRecentCheckins(params, fsq.value.access_token, function (err, result) {
 					
+					if (err) {
+						throw err;
+					}
+					if (!result || !result.recent) {
+						console.log("Foursquare: No results?");
+						console.log(result);
+					}
 					checkins = result.recent;
 					if (!checkins || checkins.length == 0 || !checkins[0]) {
 						return finished();
@@ -302,7 +314,7 @@ exports.controller = function(req, res, next) {
 						});
 						activity_item.media = [image];
 					}
-					activity_item.posted_at = new Date(Date.parse(checkin.createdAt));
+					activity_item.posted_at = new Date(checkin.createdAt * 1000);
 					activity_item.data = checkin;
 					
 					var chars = [];

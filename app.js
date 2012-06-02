@@ -59,12 +59,55 @@ conf.initConfig(function(err) {
 				next();
 			}
 		});
-		// flash message helper function
-		app.dynamicHelpers({flash_message: function (req, res) {
-			return function () {
-				return req.message_text;
+		
+		// dynamic nav
+		app.use(function (req, res, next) {
+			req.nav_group = "default";
+			next();
+		});
+		
+		// dynamic helper functions accessible from views
+		app.dynamicHelpers({
+			flash_message: function (req, res) {
+				return function () {
+					return req.message_text;
+				}
+			},
+			get_nav_items: function (req, res) {
+				return function () {
+					var g = app.nav_groups[req.nav_group];
+					var n = g.length > 0 ? g : app.nav_groups.default;
+					app.nav_top_items.forEach(function (ni) {
+						var found = false;
+						n.forEach(function (existing_item) {
+							if (existing_item.url == ni.url) {
+								found = true;
+							}
+						});
+						if (!found) {
+							n.push(ni);
+						}
+					});
+					app.nav_bottom_items.forEach(function (ni) {
+						var found = false;
+						n.forEach(function (existing_item) {
+							if (existing_item.url == ni.url) {
+								found = true;
+							}
+						});
+						if (!found) {
+							n.push(ni);
+						}
+					});
+					return n;
+				}
+			},
+			get_url: function (req, res) {
+				return function () {
+					return req.originalUrl;
+				}
 			}
-		}});
+		});
 		app.use(express.bodyParser());
 		app.use(express.methodOverride());
 		// auth
@@ -99,6 +142,34 @@ conf.initConfig(function(err) {
 		app.error(function(err, req, res){
 			res.render('500',{error:err});
 		});
+		
+		
+		app.nav_groups = {
+			default: [
+				{url: "/dashboard", text: "Recent Posts"}
+			]
+		};
+		app.nav_top_items = [
+			{url: "/dashboard", text: "Dashboard"}
+		];
+		app.nav_bottom_items = [
+			{url: "/admin", text: "Admin"}
+		];
+		
+		app.add_nav_item = function (g, nav_item) {
+			var found = false;
+			if (!app.nav_groups[g]) {
+				app.nav_groups[g] = [];
+			}
+			app.nav_groups[g].forEach(function (existing_item) {
+				if (existing_item.url == nav_item.url) {
+					found = true;
+				}
+			});
+			if (!found) {
+				app.nav_groups[g].push(nav_item);
+			}
+		}
 	});
 	
 	app.configure('development', function(){

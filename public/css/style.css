@@ -12,8 +12,26 @@ a:hover {
 /* Main */
 
 body {
-	/* background: #f6ffff; */
-	background: #fff;
+	margin: 0px;
+	padding: 0px;
+	font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+	background: #333;
+}
+
+#content {
+	position: relative;
+	top: 0px;
+	margin-left: 180px;
+	background-color: #E4E4E4;
+	box-shadow: -1px 0px 8px #222;
+}
+#nav {
+	position: fixed;
+	top: 0px;
+	left: 0px;
+	width: 180px;
+	height: 100%;
+	background-color: #444;
 }
 
 /* Forms */
@@ -73,8 +91,18 @@ div.clear {
 }
 
 
+
+.admin-panel {
+	padding: 4px 20px 40px 20px;
+	height: 100%;
+	min-height: 600px;
+}
+
+
+
 .activity-item-list {
 	width: 440px;
+	min-height: 600px;
 }
 
 .new-item-alert a {
@@ -97,6 +125,7 @@ div.clear {
 	-ms-transition: height 0.1s ease-in-out;
 	transition: height 0.1s ease-in-out;
 	overflow: hidden;
+	font-size: 13px;
 }
 .activity-item-selected {
 	background: #edf9ff url('/images/objects/activity-item-bg-selected.png') bottom repeat-x;
@@ -258,89 +287,114 @@ div.clear {
 
 
 
-.nav {
-  margin-bottom: 18px;
-  margin-left: 0;
-  list-style: none;
-  min-height: 20px;
-  padding: 9px 19px;
-  margin: 20px 0px;
-  background-color: #f5f5f5;
-  border: 1px solid #eee;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  -webkit-border-radius: 4px;
-     -moz-border-radius: 4px;
-          border-radius: 4px;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
-     -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
-          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
+
+
+
+.gallery-item {
+	float: left;
+	width: 200px;
+	height: 200px;
+	margin: 0px;
+	padding: 0px;
+	overflow: hidden;
+	cursor: pointer;
 }
 
-.nav > li > a {
-  display: block;
-  text-decoration: none;
+.gallery-item .bd {
+	position: absolute;
 }
 
-.nav > li > a:hover {
-  text-decoration: none;
-  background-color: #eeeeee;
+.gallery-caption {
+	position: absolute;
+	top: 200px;
+	background-color: rgb(0, 0, 0);
+	background-color: rgba(0, 0, 0, 0.5);
+	width: 200px;
+	height: 200px;
+	
+	-webkit-transition:all 0.25s ease-in-out;
+	-moz-transition:all 0.25s ease-in-out;
+	-o-transition:all 0.25s ease-in-out;
+	-ms-transition:all 0.25s ease-in-out;	
+	transition:all 0.25s ease-in-out;
 }
 
-.nav > .pull-right {
-  float: right;
+.gallery-caption,
+.gallery-caption a,
+.gallery-caption span,
+.gallery-caption p {
+	color: #FFF;
+	text-shadow: 0 -1px 1px rgba(0, 0, 0, 1);
+	font-size: 90%;
 }
 
-.nav .nav-header {
-  display: block;
-  padding: 3px 15px;
-  font-size: 11px;
-  font-weight: bold;
-  line-height: 18px;
-  color: #999999;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
+.gallery-caption img {
+	position: absolute;
+	top: 8px;
+	left: 8px;
+}
+.gallery-caption .activity-item-avatar {
+	width: 24px;
+	height: 24px;
+	-moz-border-radius: 2px;
+	-webkit-border-radius: 2px;
+	
+	-moz-box-shadow: 0.5px 0.5px 1px rgba(0, 0, 0, 0.5);
+	-webkit-box-shadow: 0.5px 0.5px 1px rgba(0, 0, 0, 0.5);
+	box-shadow: 0.5px 0.5px 1px rgba(0, 0, 0, 0.5);
 }
 
-.nav li + .nav-header {
-  margin-top: 9px;
+.gallery-caption .activity-item-author {
+	position: absolute;
+	top: 6px;
+	left: 38px;
+	white-space: nowrap;
+}
+.gallery-caption .activity-item-text {
+	position: absolute;
+	top: 17px;
+	left: 38px;
 }
 
 .nav-list {
-  padding-right: 15px;
-  padding-left: 15px;
-  margin-bottom: 0;
+  list-style: none;
 }
 
-.nav-list > li > a,
-.nav-list .nav-header {
-  margin-left: -15px;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+.nav-list, .nav-list li {
+  margin: 0px;
+  padding: 0px;
+}
+
+.nav-list > li > a:hover {
+  text-decoration: none;
 }
 
 .nav-list > li > a {
-  padding: 3px 15px;
+  padding: 12px 15px;
+  border-top: solid 1px #555;
+  border-bottom: solid 1px #333;
+}
+
+.nav-list > li > a {
+  display: block;
+  text-align: right;
+  color: #FFF;
 }
 
 .nav-list > .active > a,
-.nav-list > .active > a:hover {
+.nav-list > li > a:hover {
   color: #ffffff;
   text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.2);
-  background-color: #0088cc;
+  background: #1199EE;
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#22BBFF', endColorstr='#0077DD');
+  background: -webkit-gradient(linear, left top, left bottom, from(#22BBFF), to(#0077DD));
+  background: -moz-linear-gradient(top,  #22BBFF,  #0077DD);
+  border-top: solid 1px #44CCFF;
+  border-bottom: solid 1px #0066AA;
 }
 
-.nav-list [class^="icon-"] {
-  margin-right: 2px;
-}
 
-.nav-list .divider {
-  *width: 100%;
-  height: 1px;
-  margin: 8px 1px;
-  *margin: -5px 0 5px;
-  overflow: hidden;
-  background-color: #e5e5e5;
-  border-bottom: 1px solid #ffffff;
-}
+
 
 
 .nav-tabs {

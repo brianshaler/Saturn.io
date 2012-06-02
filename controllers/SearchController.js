@@ -12,6 +12,8 @@ exports.controller = function(req, res, next) {
 	Controller.call(this, req, res, next);
 	var self = this;
 	
+	self.nav_items = [{group: "default", url: "/search", text: "Search"}];
+	
 	self.index = function () {
 		res.render("dashboard/search", {
 			layout: "dashboard/dashboard-layout"

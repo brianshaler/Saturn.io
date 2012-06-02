@@ -16,15 +16,24 @@ exports.controller = function(req, res, next) {
 	Controller.call(this, req, res, next);
 	var self = this;
 	
+	self.nav_group = "admin";
+	self.nav_items = [
+		{group: "admin", url: "/dashboard", text: "Dashboard"},
+		{group: "admin", url: "/admin", text: "Admin"}
+	];
+	
 	self.index = function() {
 		if (!req.require_authentication("/admin")) { return; }
 		
-		return self.render('admin/index', {layout: "admin/admin-layout"});
+		req.nav_group = self.nav_group;
+		return self.render('admin/index', {layout: "dashboard"});
 	}
 	
 	self.setup = function() {
 		var step;
 		var session = req.session;
+		
+		req.nav_group = self.nav_group;
 		
 		self._get_settings("app", function (err, app_settings) {
 			if (err) throw err;

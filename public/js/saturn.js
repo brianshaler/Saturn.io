@@ -165,6 +165,9 @@ ActivityView.prototype.add_item = function (data) {
 	var self = this;
 	
 	if (self.all_items[data._id]) { return; }
+	if (self.type) {
+		data._type = self.type;
+	}
 	var item = new ActivityItem(data);
 	self.all_items[data._id] = item;
 	item.my_view = self;
@@ -217,12 +220,24 @@ ActivityView.prototype.deactivate = function () {
 
 function ActivityItem (data) {
 	var self = this;
-	var div = $("<div class=\"activity-item\">");
+	var template = "activity_item.ejs";
+	self.item_type = "activity";
+	if (data._type) {
+		self.item_type = data._type;
+		template = data._type + "_item.ejs";
+	}
+	
+	var div = $("<div class=\""+self.item_type+"-item\">");
 	self.div = div;
 	div.data('obj', self);
 	var item = data;
 	self.item = item;
 	self.my_view = false;
+	
+	self.collapsable = true;
+	if (self.item_type == "gallery") {
+		self.collapsable = false;
+	}
 	
 	self.mode = MODE_NORMAL;
 	
@@ -239,11 +254,12 @@ function ActivityItem (data) {
 	item.parsed_message = self.get_message();
 	item.avatar_url = self.get_avatar_url();
 	self.int_created_at = Date.parse(self.created_at) / 1000;
+	self.int_posted_at = Date.parse(self.posted_at) / 1000;
 	self.rating = self.ratings && self.ratings.overall ? self.ratings.overall : -100;
 	
-	div.html(new EJS({url: '/js/templates/activity_item.ejs'}).render(item));
-	div.bind('mouseenter', function (e) { self.div.addClass('activity-item-hover'); });
-	div.bind('mouseleave', function (e) { self.div.removeClass('activity-item-hover'); });
+	div.html(new EJS({url: '/js/templates/'+template}).render(item));
+	div.bind('mouseenter', function (e) { self.on_mouse_over(); });
+	div.bind('mouseleave', function (e) { self.on_mouse_out(); });
 	div.bind('size_changed', function (e) { self.size_changed(); });
 	$(".expand-item", div).bind('click', function (e) { return self.expand(e); });
 	self.div.bind('click', function (e) { if (self.mode != MODE_EXPANDED) { self.expand(); } });
@@ -252,10 +268,11 @@ function ActivityItem (data) {
 	$(".dislike-item", div).bind('click', function (e) { return self.dislike(e); });
 	
 	$(".activity-item-text a", div).each(function (i, link) {
-		var txt = $(link).html();
+		var txt = $(link).html().replace(/^http:\/\//, "").replace(/^https:\/\//, "").replace(/^www\./, "");
 		if (txt.length > max_link_length) {
-			$(link).html(txt.substring(0, max_link_length-4)+"...");
+			txt = txt.substring(0, max_link_length-4)+"...";
 		}
+		$(link).html(txt);
 	});
 	self.set_time();
 	
@@ -335,7 +352,7 @@ ActivityItem.prototype.set_time = function () {
 	var self = this;
 	var time_div = $('.activity-item-time-ago', self.div);
 	var ctime = (new Date()).getTime()/1000;
-	var diff = ctime - self.int_created_at;
+	var diff = ctime - self.int_posted_at;
 	if (diff < 60) {
 		str = "<1m";
 	} else
@@ -348,7 +365,7 @@ ActivityItem.prototype.set_time = function () {
 	if (diff < 60*60*24*30) {
 		str = Math.round(diff/60/60/24)+"d";
 	} else {
-		var d = new Date(self.int_created_at*1000);
+		var d = new Date(self.int_posted_at*1000);
 		str = (d.getMonth()+1) + "/" + d.getDate() + (d.getFullYear() != (new Date()).getFullYear() ? "/" + d.getFullYear() : "");
 	}
 	time_div.html(str);
@@ -366,7 +383,9 @@ ActivityItem.prototype.set_mode = function (mode) {
 	
 	if (self.mode == MODE_COLLAPSED) {
 		self.div.bind('click', function (e) { return self.expand(e); });
-		self.div.addClass("activity-item-collapsed");
+		if (self.collapsable) {
+			self.div.addClass("activity-item-collapsed");
+		}
 	} else {
 		self.div.unbind('click');
 		if (self.mode == MODE_EXPANDED) {
@@ -388,6 +407,7 @@ ActivityItem.prototype.collapse = function (e) {
 	var self = this;
 	
 	if (e) { e.preventDefault(); }
+	if (!self.collapsable) { return false; }
 	self.set_mode(self.starting_mode);
 	deselect_all();
 	return false;
@@ -463,7 +483,27 @@ ActivityItem.prototype.dislike = function (e) {
 	self.div.remove();
 	return false;
 }
-
+ActivityItem.prototype.on_mouse_over = function () {
+	var self = this;
+	
+	self.div.addClass('activity-item-hover');
+	if (self.item_type == "gallery") {
+		var caption = $('.gallery-caption', self.div);
+		var txt = $('.activity-item-text', self.div);
+		var new_top = 200-parseInt(txt.css('top'))-txt.outerHeight()-14;
+		if (new_top < 50) { new_top = 50; }
+		caption.css('top', new_top);
+	}
+}
+ActivityItem.prototype.on_mouse_out = function () {
+	var self = this;
+	
+	self.div.removeClass('activity-item-hover');
+	if (self.item_type == "gallery") {
+		var caption = $('.gallery-caption', self.div);
+		caption.css('top', 200);
+	}
+}
 
 
 

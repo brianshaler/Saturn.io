@@ -17,14 +17,19 @@ exports.controller = function(req, res, next) {
 	Controller.call(this, req, res);
 	var self = this;
 	
-	self.platform = "instagram";
+	self.nav_items = [{group: "admin", url: "/instagram/setup", text: "Instagram"}];
+	
+	self.layout = "dashboard";
 	
 	self.tasks = [
 		{controller: "InstagramController", method: "feed", interval: 120}
 	];
 	
+	self.platform = "instagram";
+	
 	self.setup = function () {
 		if (!req.require_authentication()) { return; }
+		req.nav_group = "admin";
 		
 		var step = req.params.id;
 		var steps = ["app", "connect"];
@@ -79,7 +84,7 @@ exports.controller = function(req, res, next) {
 					}
 					// Show the page for this step
 					return self.render('admin/setup/instagram/connect', {
-						layout: "admin/admin-layout",
+						layout: self.layout,
 						locals: {
 							title: 'Connect to Instagram',
 							settings: {},
@@ -107,7 +112,7 @@ exports.controller = function(req, res, next) {
 					} else {
 						// Show the page for this step
 						return self.render('admin/setup/instagram/app', {
-							layout: "admin/admin-layout",
+							layout: self.layout,
 							locals: {
 								title: 'Instagram',
 								settings: ig.value

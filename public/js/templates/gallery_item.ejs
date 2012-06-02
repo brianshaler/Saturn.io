@@ -1,0 +1,40 @@
+<div class="" id="<%= _id %>">
+	<div class="bd" style="position: relative">
+		<% if (media && media.length > 0) { 
+			var image = "";
+			var image_width = 1;
+			var image_height = 1;
+			var min_width = 200;
+			var min_height = 200;
+			media.forEach(function (item) {
+				if (image == "" && item.type == "photo") {
+					var best_fit = item.sizes[0];
+					
+					item.sizes.forEach(function (size) {
+						if (size.width > min_width && size.height > min_height) {
+							if ((size.width < best_fit.width && size.height < best_fit.height) || best_fit.width < min_width || best_fit.height < min_height) {
+								best_fit = size;
+							}
+						}
+					});
+					image = best_fit.url;
+					image_width = best_fit.width < best_fit.height ? 200 : 200 * best_fit.width / best_fit.height;
+					image_height = best_fit.height < best_fit.width ? 200 : 200 * best_fit.height / best_fit.width;
+				}
+			});
+			%>
+		<div class="activity-item-media"><img src="<%= image %>" width="<%= image_width %>" height="<%= image_height %>" /></div>
+		<% } %>
+		<div class="gallery-caption">
+			<div class="img">
+				<a href="/identity/view/<%= user._id %>">
+					<img class="activity-item-avatar" src="<%= avatar_url || "/images/saturn/logo_t.png" %>">
+				</a>
+			</div>
+			<span class="activity-item-author">
+				<a href="/identity/view/<%= user._id %>"><%= user.display_name %></a>
+			</span>
+			<p class="activity-item-text"><%= parsed_message %></p>
+		</div>
+	</div>
+</div>

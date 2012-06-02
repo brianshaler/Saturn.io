@@ -17,15 +17,20 @@ exports.controller = function(req, res, next) {
 	Controller.call(this, req, res);
 	var self = this;
 	
-	self.platform = "twitter";
+	self.nav_items = [{group: "admin", url: "/twitter/setup", text: "Twitter"}];
+	
+	self.layout = "dashboard";
 	
 	self.tasks = [
 		{controller: "TwitterController", method: "timeline", interval: 60},
 		{controller: "TwitterController", method: "stream", interval: 10, attributes: {connected: false}}
 	];
 	
+	self.platform = "twitter";
+	
 	self.setup = function () {
 		if (!req.require_authentication()) { return; }
+		req.nav_group = "admin";
 		
 		var step = req.params.id;
 		var steps = ["app", "connect"];
@@ -80,7 +85,7 @@ exports.controller = function(req, res, next) {
 					}
 					// Show the page for this step
 					return self.render('admin/setup/twitter/connect', {
-						layout: "admin/admin-layout",
+						layout: self.layout,
 						locals: {
 							title: 'Connect to Twitter',
 							settings: {},
@@ -108,7 +113,7 @@ exports.controller = function(req, res, next) {
 					} else {
 						// Show the page for this step
 						return self.render('admin/setup/twitter/app', {
-							layout: "admin/admin-layout",
+							layout: self.layout,
 							locals: {
 								title: 'Express TEST',
 								settings: tw.value

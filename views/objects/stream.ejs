@@ -1,12 +1,23 @@
-<section class="activity-item-list stream-<%= stream.name %>">
+<%
+stream_type = "activity";
+if (stream.type) {
+	stream_type = stream.type;
+}
+%>
+<section class="<%= stream_type %>-item-list stream-<%= stream.name %>">
 	
 </section>
+
+<div class="clear"></div>
 
 <script>
 current_view = new ActivityView("<%= stream.name %>", "<%= stream.url %>");
 current_view.set_sort("<%= stream.sort_by %>");
 current_view.minimum_rating = -100;
 current_view.collapse_below = 1;
+<% if (stream.type) { %>
+current_view.type = "<%= stream.type %>";
+<% } %>
 <% activity_items.forEach(function (item) { %>
 current_view.add_item(<%- JSON.stringify(item) %>);
 <% }) %>
