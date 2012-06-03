@@ -46,11 +46,15 @@ var ActivityItemSchema = new Schema({
 
 ActivityItemSchema.methods.like = function(cb) {
 	var self = this;
+	self.liked = true;
+	self.disliked = false;
 	self.increment_rating("likes", cb);
 }
 
 ActivityItemSchema.methods.dislike = function(cb) {
 	var self = this;
+	self.liked = false;
+	self.disliked = true;
 	self.increment_rating("dislikes", cb);
 }
 
