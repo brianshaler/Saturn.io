@@ -128,6 +128,11 @@ conf.initConfig(function(err) {
 							var correct_token = crypto.createHash('sha1').update(req.session.user_name+"|"+req.session.session_key).digest('hex');
 							if (req.session.session_token == correct_token) {
 								req.is_user = true;
+								s.value.last_activity = new Date();
+								s.commit("value");
+								s.save(function (err) {
+									// err?
+								});
 							}
 						}
 					}
