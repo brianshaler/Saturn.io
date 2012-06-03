@@ -203,9 +203,11 @@ exports.controller = function(req, res, next) {
 	
 	self.stream = function () {
 		
-		var stream_timeout = 4.5*1000;
-		var ping_frequency = 1*1000;
-		
+		var SECONDS = 1000;
+		var MINUTES = 60*SECONDS;
+		var stream_timeout = 4.5*SECONDS;
+		var ping_frequency = 2*SECONDS;
+		var activity_timeout = 5*MINUTES;
 		
 		Settings.findOne({option: self.platform}, function(err, tw) {
 			if (err) throw err;
@@ -213,6 +215,7 @@ exports.controller = function(req, res, next) {
 			
 			var access_token_key = tw.value.access_token_key;
 			var access_token_secret = tw.value.access_token_secret;
+			var stream;
 			
 			Task.findOne({controller: "TwitterController", method: "stream"}, function (err, task) {
 				if (err || !task) {
@@ -224,7 +227,7 @@ exports.controller = function(req, res, next) {
 				if (attr.connected) {
 					if (attr.last_ping.getTime() < Date.now() - stream_timeout) {
 						attr.connected = false;
-						update_task(function () {
+						ping_stream(function () {
 							res.send("Already streaming, but timing out.");
 						});
 					} else {
@@ -233,89 +236,116 @@ exports.controller = function(req, res, next) {
 					return;
 				}
 				
-				console.log("OPENING NEW STREAM");
+				function is_user_active (cb) {
+					Settings.findOne({option: "app"}, function (err, app_settings) {
+						if (!app_settings.value.last_activity) {
+							app_settings.value.last_activity = new Date(Date.now()-activity_timeout);
+							app_settings.save(function (err) { });
+						}
+						if (app_settings.value.last_activity > Date.now() - activity_timeout) {
+							cb();
+						} else {
+							cb("Don't stream while user is not active");
+						}
+					});
+				}
 				
-				attr.connected = true;
-				update_task();
+				is_user_active(function (err) {
+					if (err) return res.send(err);
+					open_stream();
+				});
 				
-				function update_task (cb) {
+				function ping_stream (cb) {
 					if (attr.connected) {
 						attr.last_ping = new Date();
-						setTimeout(update_task, ping_frequency);
+						setTimeout(ping_stream, ping_frequency);
 					}
 					Task.update({controller: "TwitterController", method: "stream"}, {attributes: attr}, {}, function () {
 						// err?
 					});
+					is_user_active(function (err) {
+						if (err && stream) {
+							stream.destroy();
+						}
+					});
 				}
-			
-				//console.log(me);
-				twitter = get_twitter(tw.value, access_token_key, access_token_secret);
 				
-				var streaming = false;
-				twitter.stream('user', {replies: "all"}, function(stream) {
-					streaming = true;
+				function open_stream () {
+					console.log("OPENING NEW STREAM");
+					
 					attr.connected = true;
-					stream.on('data', function(data) {
-						//console.log("stream.data");
-						if (data && data.friends && data.friends.length > 0) { return; }
-						if (data && data.text && data.user && data.user.screen_name) {
-							//console.log("new tweet from: @"+data.user.screen_name);
-							try {
-								self._process_tweet(twitter, data, function () { });
-							} catch (e)
-							{
-								throw e;
+					ping_stream();
+					
+					//console.log(me);
+					twitter = get_twitter(tw.value, access_token_key, access_token_secret);
+					
+					var streaming = false;
+					twitter.stream('user', {replies: "all"}, function(_stream) {
+						stream = _stream;
+						streaming = true;
+						attr.connected = true;
+						stream.on('data', function(data) {
+							//console.log("stream.data");
+							if (data && data.friends && data.friends.length > 0) { return; }
+							if (data && data.text && data.user && data.user.screen_name) {
+								//console.log("new tweet from: @"+data.user.screen_name);
+								try {
+									self._process_tweet(twitter, data, function () { });
+								} catch (e)
+								{
+									throw e;
+								}
+								return;
 							}
-							return;
-						}
-				        //console.log(util.inspect(data));
-				    });
-					stream.on('error', function(error) {
-						console.log("stream.error");
-						console.log(error);
-						console.log(error.stack);
-						attr.connected = false;
-						streaming = false;
-						try {
-							stream.destroy();
-						} catch (e) {
+					        //console.log(util.inspect(data));
+					    });
+						stream.on('error', function(error) {
+							console.log("stream.error");
+							console.log(error);
+							console.log(error.stack);
+							attr.connected = false;
+							streaming = false;
+							try {
+								stream.destroy();
+							} catch (e) {
 						
-						}
-						update_task(function (err) {
-							res.send(error);
+							}
+							ping_stream(function (err) {
+								res.send(error);
+							});
 						});
-					});
-					stream.on('end', function(err) {
-						console.log("stream.end");
-						attr.connected = false;
-						streaming = false;
-						try {
-							stream.destroy();
-						} catch (e) {
+						stream.on('end', function(err) {
+							console.log("stream.end");
+							attr.connected = false;
+							streaming = false;
+							try {
+								stream.destroy();
+							} catch (e) {
 						
-						}
-						update_task(function (err) {
-							console.log("Stream terminating");
-							res.send("Done");
+							}
+							ping_stream(function (err) {
+								console.log("Stream terminating");
+								res.send("Done");
+							});
 						});
-					});
-					stream.on('close', function() {
-						console.log("stream.close");
-						attr.connected = false;
-						streaming = false;
-						try {
-							stream.destroy();
-						} catch (e) {
+						stream.on('close', function() {
+							console.log("stream.close");
+							attr.connected = false;
+							streaming = false;
+							try {
+								stream.destroy();
+							} catch (e) {
 						
-						}
-						update_task(function (err) {
-							console.log("Stream terminating");
-							res.send("Done");
+							}
+							ping_stream(function (err) {
+								console.log("Stream terminating");
+								res.send("Done");
+							});
 						});
+						// Disconnect stream after five seconds
+						//setTimeout(function () { console.log("Okay, killing it"); stream.destroy(); }, 5000);
 					});
-					// Disconnect stream after five seconds
-					//setTimeout(function () { console.log("Okay, killing it"); stream.destroy(); }, 5000);
-				});
+				}
 			});
 		});
 	}
