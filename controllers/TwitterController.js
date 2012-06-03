@@ -23,7 +23,9 @@ exports.controller = function(req, res, next) {
 	
 	self.tasks = [
 		{controller: "TwitterController", method: "timeline", interval: 60},
-		{controller: "TwitterController", method: "stream", interval: 10, attributes: {connected: false}}
+		{controller: "TwitterController", method: "stream", interval: 10, attributes: {connected: false}},
+		{controller: "TwitterController", method: "my_favorites", interval: 86400},
+		//{controller: "TwitterController", method: "friends_favorites", interval: 120}
 	];
 	
 	self.platform = "twitter";
@@ -392,6 +394,84 @@ exports.controller = function(req, res, next) {
 		}
 	}
 	
+	self.my_favorites = function (silent) {
+		var twitter;
+		
+		Settings.findOne({option: self.platform}, function(err, tw) {
+			if (err) return finished(err);
+			if (!tw) return finished(); // "Couldn't find Twitter settings. Have you set it up yet?"
+			
+			var access_token_key = tw.value.access_token_key;
+			var access_token_secret = tw.value.access_token_secret;
+			
+			Task.findOne({controller: "TwitterController", method: "my_favorites"}, function (err, task) {
+				if (err || !task) {
+					return finished("Couldn't find my_favorites task");
+				}
+				var attr = task.attributes || {};
+				var since_id = attr.since_id || -1;
+				var params = {count: 100, include_entities: true};
+				if (attr.since_id) {
+					params.since_id = attr.since_id;
+				}
+				
+				twitter = get_twitter(tw.value, access_token_key, access_token_secret);
+				// Another instance of payload being same parameter as err.... shit.
+				twitter.getFavorites(params, function (tweets, dummy) {
+					
+					if (!tweets || tweets.length == 0 || !tweets[0] || !tweets[0].hasOwnProperty("id_str")) {
+						//console.log("No tweets..");
+						return finished();
+					}
+					
+					since_id = tweets[0].id_str;
+					
+					process_next_tweet();
+					
+					function process_next_tweet () {
+						if (tweets.length == 0) {
+							return finished();
+						}
+						var tweet = tweets.pop();
+						
+						if (tweet.retweeted_status && tweet.retweeted_status.text) {
+							//tweet = tweet.retweeted_status;
+							//return process_next_tweet();
+						}
+						
+						self._process_tweet(tweet, function (err, activity_item) {
+							if (activity_item) {
+								activity_item.like(function (err) {
+									process_next_tweet();
+								});
+							} else {
+								process_next_tweet();
+							}
+						});
+					}
+					
+					attr.since_id = since_id;
+					task.attributes = attr;
+					task.commit("attributes");
+					task.save(function (err) {
+						// ERROR?
+					});
+				});
+			});
+		});
+		
+		function finished (err) {
+			// Hmm...
+			if (err) {
+				console.log("Error:");
+				console.log(err);
+			}
+			if (!silent) {
+				res.send("Done");
+			}
+		}
+	}
+	
 	self._process_tweet = function (tweet, cb) {
 		//console.log("Processing tweet: "+tweet.text.substring(0, 50));
 		if (tweet.text.substring(0, 4) == "RT @") {
@@ -457,11 +537,7 @@ exports.controller = function(req, res, next) {
 					activity_item.user = identity.id;
 					activity_item.posted_at = new Date(Date.parse(tweet.created_at));
 					activity_item.data = tweet;
-					if (new_item) {
-						activity_item.message = tweet.text;
-						activity_item.analyzed_at = new Date(0);
-						activity_item.topics = [];
-						activity_item.characteristics = [];
+					if (!activity_item.attributes) {
 						activity_item.attributes = {};
 					}
 					if (tweet.user.following == true) {
@@ -471,6 +547,11 @@ exports.controller = function(req, res, next) {
 					var chars = [];
 					
 					if (new_item) {
+						activity_item.message = tweet.text;
+						activity_item.analyzed_at = new Date(0);
+						activity_item.topics = [];
+						activity_item.characteristics = [];
+						
 						chars.push("source: "+tweet.source);
 						if (tweet.text.indexOf("http") >= 0) {
 							chars.push("has link");
@@ -522,7 +603,7 @@ exports.controller = function(req, res, next) {
 								}
 								if (cb) {
 									//console.log("Finished: "+tweet.text.substring(0, 50));
-									cb();
+									cb(null, _item);
 								}
 							});
 						});
