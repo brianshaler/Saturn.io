@@ -24,16 +24,16 @@ exports.controller = function(req, res, next) {
 		var activity_items = [];
 		var where = {analyzed_at: {"$gt": new Date(Date.now()-86400*1000)}};
 		if (req.query.since) {
-			where["created_at"] = {"$gt": new Date(parseInt(req.query.since)*1000)};
+			where["posted_at"] = {"$gt": new Date(parseInt(req.query.since)*1000)};
 		}
 		// We can limit tweets to only people you follow (good for hiding RTs)
 		// HOWEVER: With Twitters API, GET statuses/show/:id seems to return "following: null" (sometimes?)
 		// So to determine that we do or do not follow a user, we would need to dispatch another request..
 		where["attributes.is_friend"] = true;
 		
-		var settings = {name: "dashboard", ratings: {"$exists": 1}, sort_by: "int_created_at desc", url: "/dashboard.json"};
+		var settings = {name: "dashboard", ratings: {"$exists": 1}, sort_by: "int_posted_at desc", url: "/dashboard.json"};
 		ActivityItem.find(where)
-		.sort("created_at", -1)
+		.sort("posted_at", -1)
 		.limit(20)
 		.populate("user")
 		.populate("characteristics")
