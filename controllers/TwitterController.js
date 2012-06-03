@@ -213,14 +213,14 @@ exports.controller = function(req, res, next) {
 			
 			var access_token_key = tw.value.access_token_key;
 			var access_token_secret = tw.value.access_token_secret;
-		
+			
 			Task.findOne({controller: "TwitterController", method: "stream"}, function (err, task) {
 				if (err || !task) {
 					return res.send("No task set up for monitoring a twitter stream..");
 				}
-			
+				
 				var attr = task.attributes || {};
-			
+				
 				if (attr.connected) {
 					if (attr.last_ping.getTime() < Date.now() - stream_timeout) {
 						attr.connected = false;
@@ -232,12 +232,12 @@ exports.controller = function(req, res, next) {
 					}
 					return;
 				}
-			
+				
 				console.log("OPENING NEW STREAM");
-			
+				
 				attr.connected = true;
 				update_task();
-			
+				
 				function update_task (cb) {
 					if (attr.connected) {
 						attr.last_ping = new Date();
@@ -252,7 +252,7 @@ exports.controller = function(req, res, next) {
 				twitter = get_twitter(tw.value, access_token_key, access_token_secret);
 				
 				var streaming = false;
-				twitter.stream('user', {}, function(stream) {
+				twitter.stream('user', {replies: "all"}, function(stream) {
 					streaming = true;
 					attr.connected = true;
 					stream.on('data', function(data) {
@@ -261,7 +261,7 @@ exports.controller = function(req, res, next) {
 						if (data && data.text && data.user && data.user.screen_name) {
 							//console.log("new tweet from: @"+data.user.screen_name);
 							try {
-								self._process_tweet(data, function () { });
+								self._process_tweet(twitter, data, function () { });
 							} catch (e)
 							{
 								throw e;
@@ -366,7 +366,7 @@ exports.controller = function(req, res, next) {
 							//return process_next_tweet();
 						}
 						
-						self._process_tweet(tweet, function (err) {
+						self._process_tweet(twitter, tweet, function (err) {
 							process_next_tweet();
 						});
 						
@@ -439,7 +439,7 @@ exports.controller = function(req, res, next) {
 							//return process_next_tweet();
 						}
 						
-						self._process_tweet(tweet, function (err, activity_item) {
+						self._process_tweet(twitter, tweet, function (err, activity_item) {
 							if (activity_item) {
 								activity_item.like(function (err) {
 									process_next_tweet();
@@ -472,66 +472,123 @@ exports.controller = function(req, res, next) {
 		}
 	}
 	
-	self._process_tweet = function (tweet, cb) {
+	self._get_tweet = function (twitter, tweet_id, cb) {
+		var guid = self.platform + "-" + tweet_id;
+		
+		ActivityItem.findOne({guid: guid}, function (err, item) {
+			if (err) return cb(err);
+			
+			if (item && item.guid == guid) {
+				cb(null, item);
+			} else {
+				twitter = get_twitter({consumer_key: twitter.options.consumer_key, consumer_secret: twitter.options.consumer_secret}, twitter.options.access_token_key, twitter.options.access_token_secret);
+				twitter.showStatus(tweet_id, function (tweet, dummy) {
+					if (tweet && tweet.id_str) {
+						self._process_tweet(twitter, tweet, function (err, activity_item) {
+							if (err) return cb(err);
+							
+							cb(null, activity_item);
+						});
+					} else {
+						cb("Couldn't fetch tweet..");
+					}
+				});
+			}
+		});
+	}
+	
+	self._process_tweet = function (twitter, tweet, cb) {
 		//console.log("Processing tweet: "+tweet.text.substring(0, 50));
 		if (tweet.text.substring(0, 4) == "RT @") {
 			//console.log(tweet);
-		}
-		
-		if (tweet.retweeted_status && tweet.retweeted_status.text) {
-			tweet = tweet.retweeted_status;
-			// skip retweet:
-			cb();
-			return false;
 		}
 		
 		var identity;
 		var new_item = false;
 		var activity_item;// = new ActivityItem();
 		
-		ActivityItem.findOne({guid: self.platform+"-"+tweet.id_str}, function (err, item) {
-			if (err) throw err;
-			
-			if (item) {
-				// it exists, let's just update it
-				activity_item = item;
-			} else {
-				// doesn't exist, create a blank one
-				activity_item = new ActivityItem();
-				new_item = true;
+		Identity.findOne({platform: self.platform, platform_id: tweet.user.id_str}, function (err, identity) {
+			if (err || !identity) {
+				identity = new Identity();
+				identity.photo = [];
 			}
+			identity.platform = self.platform;
+			identity.platform_id = tweet.user.id_str;
+			identity.guid = identity.platform + "-" + identity.platform_id;
+			identity.user_name = tweet.user.screen_name;
+			identity.display_name = tweet.user.name + " (@"+ tweet.user.screen_name + ")";
+			if (!identity.attributes) {
+				identity.attributes = {};
+			}
+			identity.attributes.twitter_favorites_count = tweet.user.favourites_count;
+			if (!identity.attributes.twitter_favorites_cached) {
+				identity.attributes.twitter_favorites_cached = 0;
+			}
+			if (tweet.user.following == true) {
+				identity.attributes.is_friend = true;
+			} else
+			if (!identity.attributes.is_friend && tweet.user.following === false) {
+				identity.attributes.is_friend = false;
+			}
+			identity.commit("attributes");
+			var photo_found = false;
+			identity.photo.forEach(function (photo) {
+				if (photo.url == tweet.user.profile_image_url_https) {
+					photo_found = true;
+				}
+			});
+			if (!photo_found) {
+				identity.photo.push({url: tweet.user.profile_image_url_https});
+			}
+			identity.updated_at = new Date();
+			identity.save(function (err) {
+				
+				if (tweet.retweeted_status && tweet.retweeted_status.text) {
+					//tweet = tweet.retweeted_status;
+					// skip retweet:
+					self._process_tweet(twitter, tweet.retweeted_status, function (err, retweeted) {
+						if (err || !retweeted) return cb(err, retweeted);
+
+						var found = false;
+						if (!retweeted.activity) { retweeted.activity = []; }
+						retweeted.activity.forEach(function (act) {
+							if (act.identity == identity._id && act.action == "retweet") {
+								found = true;
+							}
+						});
+						if (found) {
+							analyze_item();
+						} else {
+							retweeted.activity.push({
+								_id: false, 
+								action: "retweet", 
+								identity: identity._id,
+								message: "Retweeted",
+								created_at: new Date(Date.parse(tweet.created_at))
+							});
+							retweeted.commit("activity");
+							retweeted.save(function (err) {
+								if (err) console.log(err);
+								cb(err, retweeted);
+							});
+						}
+						cb(err, activity_item);
+					});
+					return false;
+				}
+				
+				ActivityItem.findOne({guid: self.platform+"-"+tweet.id_str}, function (err, item) {
+					if (err) throw err;
 			
-			Identity.findOne({platform: self.platform, platform_id: tweet.user.id_str}, function (err, identity) {
-				if (err || !identity) {
-					identity = new Identity();
-					identity.photo = [];
-				}
-				identity.platform = self.platform;
-				identity.platform_id = tweet.user.id_str;
-				identity.guid = identity.platform + "-" + identity.platform_id;
-				identity.user_name = tweet.user.screen_name;
-				identity.display_name = tweet.user.name + " (@"+ tweet.user.screen_name + ")";
-				if (!identity.attributes) {
-					identity.attributes = {};
-				}
-				identity.attributes.twitter_favorites_count = tweet.user.favourites_count;
-				if (!identity.attributes.twitter_favorites_cached) {
-					identity.attributes.twitter_favorites_cached = 0;
-				}
-				if (tweet.user.following == true) {
-					identity.attributes.is_friend = true;
-				}
-				var photo_found = false;
-				identity.photo.forEach(function (photo) {
-					if (photo.url == tweet.user.profile_image_url_https) {
-						photo_found = true;
+					if (item) {
+						// it exists, let's just update it
+						activity_item = item;
+					} else {
+						// doesn't exist, create a blank one
+						activity_item = new ActivityItem();
+						new_item = true;
 					}
-				});
-				if (!photo_found) {
-					identity.photo.push({url: tweet.user.profile_image_url_https});
-				}
-				identity.updated_at = new Date();
-				identity.save(function (err) {
+					
 					activity_item.platform = self.platform;
 					activity_item.guid = activity_item.platform + "-" + tweet.id_str;
 					activity_item.user = identity.id;
@@ -540,9 +597,8 @@ exports.controller = function(req, res, next) {
 					if (!activity_item.attributes) {
 						activity_item.attributes = {};
 					}
-					if (tweet.user.following == true) {
-						activity_item.attributes.is_friend = true;
-					}
+					activity_item.attributes.is_friend = identity.attributes.is_friend
+					activity_item.commit("attributes");
 					
 					var chars = [];
 					
@@ -593,19 +649,59 @@ exports.controller = function(req, res, next) {
 					
 					function save_activity_item () {
 						activity_item.save(function (err) {
-							// ERROR?
-							activity_item.analyze(function (err, _item) {
-								if (!err && _item) {
-									_item.save(function (err) {
-										//console.log("ActivytItem saved / "+err);
-										// ERROR?
-									});
-								}
-								if (cb) {
-									//console.log("Finished: "+tweet.text.substring(0, 50));
-									cb(null, _item);
-								}
-							});
+							
+							// check for @reply before continuing
+							if (activity_item.data.in_reply_to_status_id_str && activity_item.data.in_reply_to_status_id_str.length > 0) {
+								self._get_tweet(twitter, activity_item.data.in_reply_to_status_id_str, function (err, replied_activity_item) {
+									
+									if (!err && replied_activity_item) {
+										var found = false;
+										if (!replied_activity_item.activity) { replied_activity_item.activity = []; }
+										replied_activity_item.activity.forEach(function (act) {
+											if (act._id == activity_item._id) {
+												found = true;
+											}
+										});
+										if (found) {
+											analyze_item();
+										} else {
+											replied_activity_item.activity.push({
+												_id: activity_item._id, 
+												action: "reply", 
+												identity: identity._id,
+												message: activity_item.message,
+												created_at: activity_item.posted_at
+											});
+											replied_activity_item.commit("activity");
+											replied_activity_item.save(function (err) {
+												if (err) console.log(err);
+												analyze_item();
+											});
+										}
+									} else {
+										console.log("Fail. "+activity_item._id);
+										console.log(err);
+										analyze_item();
+									}
+								});
+							} else {
+								analyze_item();
+							}
+							
+							function analyze_item () {
+								activity_item.analyze(function (err, _item) {
+									if (!err && _item) {
+										_item.save(function (err) {
+											//console.log("ActivytItem saved / "+err);
+											// ERROR?
+										});
+									}
+									if (cb) {
+										//console.log("Finished: "+tweet.text.substring(0, 50));
+										cb(null, _item);
+									}
+								});
+							}
 						});
 					}
 				}); // identity.save
