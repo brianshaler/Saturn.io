@@ -30,17 +30,19 @@ var Identity = new Schema({
 });
 
 Identity.methods.calculate_rating = function () {
-	if (!this.ratings) {
-		this.ratings = {};
+	var self = this;
+	
+	if (!self.ratings) {
+		self.ratings = {};
 	}
-	if (!this.ratings.overall) {
-		this.ratings.overall = 0;
+	if (!self.ratings.overall) {
+		self.ratings.overall = 0;
 	}
-	if (!this.ratings.likes) {
-		this.ratings.likes = 0;
+	if (!self.ratings.likes) {
+		self.ratings.likes = 0;
 	}
-	if (!this.ratings.dislikes) {
-		this.ratings.dislikes = 0;
+	if (!self.ratings.dislikes) {
+		self.ratings.dislikes = 0;
 	}
 	
 	var likes = self.ratings.likes;
@@ -72,7 +74,7 @@ Identity.methods.calculate_rating = function () {
 	}
 	factors.forEach(function (f) { sum += f; });
 	self.ratings.overall = factors.length > 0 ? sum / factors.length : 0;
-	this.commit("ratings");
+	self.commit("ratings");
 }
 
 Identity.pre('save', function (next) {
