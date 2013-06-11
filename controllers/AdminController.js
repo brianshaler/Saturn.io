@@ -4,7 +4,8 @@
 
 var mongoose = require('mongoose'),
 	conf = require('node-config'),
-	crypto = require('crypto');
+	crypto = require('crypto'),
+  fs = require('fs');
 
 // Models
 var Settings = mongoose.model('Settings'),
