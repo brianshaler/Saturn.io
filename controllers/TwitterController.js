@@ -3,7 +3,7 @@
  **/
 
 var mongoose = require('mongoose'),
-	twitter_api = require('twitter'),
+	twitter_api = require('ntwitter'),
 	url = require('url'),
 	conf = require('node-config');
 
