@@ -374,7 +374,7 @@ exports.controller = function(req, res, next) {
 				
 				twitter = get_twitter(tw.value, access_token_key, access_token_secret);
 				// Another instance of payload being same parameter as err.... shit.
-				twitter.getHomeTimeline(params, function (tweets, dummy) {
+				twitter.getHomeTimeline(params, function (err, tweets) {
 					
 					if (!tweets || tweets.length === 0 || !tweets[0] || !tweets[0].hasOwnProperty("id_str")) {
 						//console.log("No tweets..");
@@ -512,8 +512,10 @@ exports.controller = function(req, res, next) {
 				cb(null, item);
 			} else {
 				twitter = get_twitter({consumer_key: twitter.options.consumer_key, consumer_secret: twitter.options.consumer_secret}, twitter.options.access_token_key, twitter.options.access_token_secret);
-				twitter.showStatus(tweet_id, function (tweet, dummy) {
-          //console.log(tweet);
+				twitter.showStatus(tweet_id, function (err, tweet) {
+          if (err) {
+            cb(err);
+          }
 					if (tweet && tweet.id_str) {
 						self._process_tweet(twitter, tweet, function (err, activity_item) {
 							if (err) return cb(err);
