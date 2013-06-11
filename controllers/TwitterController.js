@@ -24,7 +24,7 @@ exports.controller = function(req, res, next) {
 	self.tasks = [
 		{controller: "TwitterController", method: "timeline", interval: 60},
 		{controller: "TwitterController", method: "stream", interval: 10, attributes: {connected: false}},
-		{controller: "TwitterController", method: "my_favorites", interval: 86400},
+		{controller: "TwitterController", method: "my_favorites", interval: 86400}
 		//{controller: "TwitterController", method: "friends_favorites", interval: 120}
 	];
 	
@@ -47,7 +47,7 @@ exports.controller = function(req, res, next) {
 		}
 		
 		function check_tasks (cb) {
-			if (self.tasks.length == 0) {
+			if (self.tasks.length === 0) {
 				cb(); return;
 			}
 			var ors = [];
@@ -125,7 +125,7 @@ exports.controller = function(req, res, next) {
 				}
 			});
 		});
-	}
+	};
 	
 	
 	// TWITTER AUTHENTICATION
@@ -143,7 +143,7 @@ exports.controller = function(req, res, next) {
 			twitter = get_twitter(tw.value);
 			twitter.login("/twitter/oauth", "/twitter/auth")(req, res, next);
 		});
-	}
+	};
 	
 	// oauth callback
 	self.auth = function() {
@@ -163,7 +163,7 @@ exports.controller = function(req, res, next) {
 		
 		// Save keys to the 'twitter' option in the Settings collection
 		Settings.findOne({option: self.platform}, function(err, _tw) {
-			tw = _tw
+			tw = _tw;
 			if (err) throw err;
 			if (!tw) tw = new Settings({option: self.platform});
 			
@@ -196,7 +196,7 @@ exports.controller = function(req, res, next) {
 			}
 			//res.send(data);
 		}
-	}
+	};
 	
 	
 	// GETTING TWEETS
@@ -297,8 +297,8 @@ exports.controller = function(req, res, next) {
 								}
 								return;
 							}
-					        //console.log(util.inspect(data));
-					    });
+					//console.log(util.inspect(data));
+					});
 						stream.on('error', function(error) {
 							console.log("stream.error");
 							console.log(error);
@@ -348,7 +348,7 @@ exports.controller = function(req, res, next) {
 				}
 			});
 		});
-	}
+	};
 	
 	self.timeline = function (silent) {
 		//console.log("TwitterController.js::timeline()");
@@ -376,7 +376,7 @@ exports.controller = function(req, res, next) {
 				// Another instance of payload being same parameter as err.... shit.
 				twitter.getHomeTimeline(params, function (tweets, dummy) {
 					
-					if (!tweets || tweets.length == 0 || !tweets[0] || !tweets[0].hasOwnProperty("id_str")) {
+					if (!tweets || tweets.length === 0 || !tweets[0] || !tweets[0].hasOwnProperty("id_str")) {
 						//console.log("No tweets..");
 						return finished();
 					}
@@ -386,7 +386,7 @@ exports.controller = function(req, res, next) {
 					process_next_tweet();
 					
 					function process_next_tweet () {
-						if (tweets.length == 0) {
+						if (tweets.length === 0) {
 							return finished();
 						}
 						var tweet = tweets.pop();
@@ -422,7 +422,7 @@ exports.controller = function(req, res, next) {
 				res.send("Done");
 			}
 		}
-	}
+	};
 	
 	self.my_favorites = function (silent) {
 		var twitter;
@@ -449,7 +449,7 @@ exports.controller = function(req, res, next) {
 				// Another instance of payload being same parameter as err.... shit.
 				twitter.getFavorites(params, function (tweets, dummy) {
 					
-					if (!tweets || tweets.length == 0 || !tweets[0] || !tweets[0].hasOwnProperty("id_str")) {
+					if (!tweets || tweets.length === 0 || !tweets[0] || !tweets[0].hasOwnProperty("id_str")) {
 						//console.log("No tweets..");
 						return finished();
 					}
@@ -459,7 +459,7 @@ exports.controller = function(req, res, next) {
 					process_next_tweet();
 					
 					function process_next_tweet () {
-						if (tweets.length == 0) {
+						if (tweets.length === 0) {
 							return finished();
 						}
 						var tweet = tweets.pop();
@@ -500,7 +500,7 @@ exports.controller = function(req, res, next) {
 				res.send("Done");
 			}
 		}
-	}
+	};
 	
 	self._get_tweet = function (twitter, tweet_id, cb) {
 		var guid = self.platform + "-" + tweet_id;
@@ -513,6 +513,7 @@ exports.controller = function(req, res, next) {
 			} else {
 				twitter = get_twitter({consumer_key: twitter.options.consumer_key, consumer_secret: twitter.options.consumer_secret}, twitter.options.access_token_key, twitter.options.access_token_secret);
 				twitter.showStatus(tweet_id, function (tweet, dummy) {
+          //console.log(tweet);
 					if (tweet && tweet.id_str) {
 						self._process_tweet(twitter, tweet, function (err, activity_item) {
 							if (err) return cb(err);
@@ -525,7 +526,7 @@ exports.controller = function(req, res, next) {
 				});
 			}
 		});
-	}
+	};
 	
 	self._process_tweet = function (twitter, tweet, cb) {
 		//console.log("Processing tweet: "+tweet.text.substring(0, 50));
@@ -554,7 +555,7 @@ exports.controller = function(req, res, next) {
 			if (!identity.attributes.twitter_favorites_cached) {
 				identity.attributes.twitter_favorites_cached = 0;
 			}
-			if (tweet.user.following == true) {
+			if (tweet.user.following === true) {
 				identity.attributes.is_friend = true;
 			} else
 			if (!identity.attributes.is_friend && tweet.user.following === false) {
@@ -627,7 +628,7 @@ exports.controller = function(req, res, next) {
 					if (!activity_item.attributes) {
 						activity_item.attributes = {};
 					}
-					activity_item.attributes.is_friend = identity.attributes.is_friend
+					activity_item.attributes.is_friend = identity.attributes.is_friend;
 					activity_item.commit("attributes");
 					
 					var chars = [];
@@ -647,7 +648,7 @@ exports.controller = function(req, res, next) {
 							chars.push("is retweet");
 							chars.push("retweeted by: "+identity.user_name);
 						}
-						if (tweet.text.match(/(^|\s)@[-A-Za-z0-9_]+(\s|$)/gi)) {
+						if (tweet.text.match(/(^|\s)@[\-A-Za-z0-9_]+(\s|$)/gi)) {
 							chars.push("is mention");
 						}
 						
@@ -659,7 +660,7 @@ exports.controller = function(req, res, next) {
 					}
 					
 					function add_characteristic () {
-						if (chars.length == 0) {
+						if (chars.length === 0) {
 							return save_activity_item();
 						}
 						ch = chars.shift();
@@ -737,7 +738,7 @@ exports.controller = function(req, res, next) {
 				}); // identity.save
 			});	// Identity.findOne		
 		}); // ActivityItem.findOne
-	}
+	};
 	
 	self._get_settings = function (cb) {
 		Settings.findOne({option: self.platform}, function(err, s) {
@@ -748,8 +749,8 @@ exports.controller = function(req, res, next) {
 			}
 			cb(null, s);
 		});
-	}
-}
+	};
+};
 
 
 
