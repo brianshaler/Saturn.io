@@ -527,7 +527,7 @@ exports.controller = function(req, res, next) {
   };
 
   self._process_tweet = function (twitter, tweet, cb) {
-    //console.log("Processing tweet: "+tweet.text.substring(0, 50));
+    // console.log("Processing tweet: "+tweet.text.substring(0, 50));
     if (tweet.text.substring(0, 4) == "RT @") {
       //console.log(tweet);
     }
@@ -630,6 +630,17 @@ exports.controller = function(req, res, next) {
           activity_item.commit("attributes");
 
           var chars = [];
+
+          var entities = tweet.entities;
+          //console.log(entities);
+          if (entities.media) {
+            entities.media.forEach(function(media) {
+              var image = { type: "", sizes: [] };
+              image.type = media.type;
+              image.sizes = [{url: media.media_url, width: media.sizes.large.w, height: media.sizes.large.h}];
+              activity_item.media = [image];
+            });
+          }
 
           if (new_item) {
             activity_item.message = tweet.text;
@@ -750,10 +761,6 @@ exports.controller = function(req, res, next) {
   };
 };
 
-
-
-
-
 function get_twitter (settings, access_token_key, access_token_secret) {
   var twit = new twitter_api({
     consumer_key: settings.consumer_key,
@@ -763,3 +770,4 @@ function get_twitter (settings, access_token_key, access_token_secret) {
   });
   return twit;
 }
+
