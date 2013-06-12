@@ -25,7 +25,7 @@ exports.controller = function(req, res, next) {
     if (!req.require_authentication("/dashboard")) { return; }
 
     var activity_items = [];
-    var where = {analyzed_at: {"$gt": new Date(Date.now()-86400*1000)}, "media.type": "photo"};
+    var where = {analyzed_at: {"$gt": new Date(Date.now()-86400*1000)}, "media.type": "photo", "ratings.overall": {"$gte": 0.0}};
     if (req.query.since) {
       where.created_at = {"$gt": new Date(parseInt(req.query.since, 10)*1000)};
     }
