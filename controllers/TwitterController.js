@@ -173,11 +173,7 @@ exports.controller = function(req, res, next) {
 			}).showUser(twitter_name, profile_retrieved);
 		});
 		
-		// Just (data)? Payload seems to be returned in first parameter instead of second as in (err, data)
-		// Looks to be caused by this:
-		// In ./node_modules/twitter/lib/twitter.js:104
-		// callback(json);
-		function profile_retrieved (data) {
+		function profile_retrieved (err, data) {
 			
 			if (data) {
 				
